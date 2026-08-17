@@ -1,0 +1,66 @@
+name: KiliSocial CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Checkstyle, Tests, Coverage, Image Build
+    runs-on: ubuntu-latest
+    env:
+      QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+      DINGTALK_WEBHOOK_URL: ${{ secrets.DINGTALK_WEBHOOK_URL }}
+      FAILURE_EMAIL_TO: ${{ secrets.FAILURE_EMAIL_TO }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Maven Verify
+        run: mvn -B verify
+
+      - name: Docker Build
+        run: docker build -f Dockerfile.ci -t kilisocial-app:${{ github.sha }} .
+
+      - name: Collect Artifacts
+        if: always()
+        run: |
+          mkdir -p ci-artifacts/jars ci-artifacts/jacoco
+          find . -path "*/target/*.jar" -not -path "*/target/original-*" -not -name "*.original" -exec cp {} ci-artifacts/jars/ \;
+          find . -path "*/target/site/jacoco/jacoco.xml" -exec sh -c 'mkdir -p "ci-artifacts/jacoco/$(basename "$(dirname "$(dirname "$(dirname "$1")")")")"; cp "$1" "ci-artifacts/jacoco/$(basename "$(dirname "$(dirname "$(dirname "$1")")")")/jacoco.xml"' sh {} \;
+          cp SERVER_VALIDATION_CHECKLIST.md ci-artifacts/
+
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kilisocial-ci-artifacts
+          path: ci-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Failure Notification Placeholder
+        if: failure()
+        run: |
+          echo "CI failed. Configure mail or DingTalk notification in a later task."
+          echo "Mail target secret present: ${{ secrets.FAILURE_EMAIL_TO != '' }}"
+          echo "DingTalk webhook secret present: ${{ secrets.DINGTALK_WEBHOOK_URL != '' }}"

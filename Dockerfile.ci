@@ -1,0 +1,10 @@
+FROM eclipse-temurin:17-jre
+
+WORKDIR /app
+COPY ai-service/target/ai-service-0.0.1-SNAPSHOT.jar ./ai-service.jar
+COPY SERVER_VALIDATION_CHECKLIST.md ./SERVER_VALIDATION_CHECKLIST.md
+
+LABEL org.opencontainers.image.title="kilisocial-app-ci"
+LABEL org.opencontainers.image.description="CI-only KiliSocial application artifact image"
+
+CMD ["java", "-version"]
