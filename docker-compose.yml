@@ -1,4 +1,40 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kilisocial_app
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8080
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx768m}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-kilisocial}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      QWEN_API_KEY: ${QWEN_API_KEY:-}
+      WA_VERIFY_TOKEN: ${WA_VERIFY_TOKEN:-}
+      WA_APP_SECRET: ${WA_APP_SECRET:-}
+      WA_ACCESS_TOKEN: ${WA_ACCESS_TOKEN:-}
+      WA_PHONE_NUMBER_ID: ${WA_PHONE_NUMBER_ID:-}
+    ports:
+      - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-18080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://localhost:8080/actuator/health >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   mysql:
     image: mysql:8.0.32
     container_name: kilisocial_mysql
@@ -11,7 +47,7 @@ services:
       - --collation-server=utf8mb4_unicode_ci
       - --default-authentication-plugin=mysql_native_password
     ports:
-      - "3306:3306"
+      - "${MYSQL_BIND_HOST:-127.0.0.1}:${MYSQL_PORT:-13306}:3306"
     volumes:
       - ./data/mysql:/var/lib/mysql
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -34,7 +70,7 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
-      - "6379:6379"
+      - "${REDIS_BIND_HOST:-127.0.0.1}:${REDIS_PORT:-16379}:6379"
     volumes:
       - ./data/redis:/data
     healthcheck:

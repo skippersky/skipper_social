@@ -10,3 +10,43 @@ management:
     web:
       exposure:
         include: health,info
+
+kili:
+  social:
+    default-connect-timeout-ms: 5000
+    default-read-timeout-ms: 15000
+    upload:
+      max-concurrent-chunks: 3
+    facebook:
+      enabled: true
+      api-base: https://graph.facebook.com
+      api-version: v22.0
+      app-id: 1412048506810813
+      app-secret: 5543ead87016a1ee8692248f662a1e30
+      video-read-timeout-ms: 180000
+    instagram:
+      enabled: true
+      api-base: https://graph.facebook.com
+      api-version: v22.0
+      video-container-max-wait-ms: 600000
+      video-container-initial-poll-interval-ms: 2000
+      video-container-max-poll-interval-ms: 30000
+      video-container-poll-backoff-multiplier: 1.5
+    tiktok:
+      enabled: true
+      api-base: https://open.tiktokapis.com
+      api-version: v2
+      pkce-enabled: false
+      client-key: sbawkzswtdcg035vii
+      client-secret: oqHjzuS6383LSvyTDqpXAknvp1yLyobK
+      redirect-uri: https://merchant4.test.kilimax.com/social/tiktok/callback
+      default-privacy-level: PUBLIC_TO_EVERYONE
+      scope: user.info.basic,user.info.profile,video.publish,video.upload
+      photo-status-max-attempts: 15
+      photo-status-poll-interval-ms: 2000
+      video-status-max-attempts: 30
+      video-status-poll-interval-ms: 3000
+      webhook-signature-verify-enabled: true
+      webhook-signature-tolerance-seconds: 300
+      publish-reconcile-after-minutes: 5
+      publish-reconcile-cron: "0 */10 * * * ?"

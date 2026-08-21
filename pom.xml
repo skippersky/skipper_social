@@ -20,6 +20,9 @@
 
     <modules>
         <module>ai-service</module>
+        <module>wa-webhook-controller</module>
+        <module>copywriting-service</module>
+        <module>wa-ai-integration</module>
     </modules>
 
     <properties>

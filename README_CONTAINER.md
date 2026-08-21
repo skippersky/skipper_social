@@ -1,38 +1,77 @@
 # KiliSocial Container Guide
 
-This compose setup starts only the Sprint 0 infrastructure services:
+This compose setup starts the current validation stack:
 
+- Spring Boot application
 - MySQL 8.0.32
 - Redis 7.0
 
-No application service is included.
+For the full deployment checklist, see `ONE_CLICK_DEPLOY.md`.
 
 ## Prepare Environment
 
-```powershell
-Copy-Item .env.example .env
+```bash
+cp .env.example .env
+vi .env
+chmod +x scripts/*.sh
 ```
 
-Edit `.env` and replace all `change_me_*` values before starting services.
+If the server already runs other Docker projects, check port conflicts before starting:
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Ports}}"
+ss -lntp | grep -E '3306|6379|8080'
+```
+
+The default host ports avoid common conflicts with existing services:
+
+```bash
+APP_BIND_HOST=127.0.0.1
+APP_PORT=18080
+MYSQL_BIND_HOST=127.0.0.1
+MYSQL_PORT=13306
+REDIS_BIND_HOST=127.0.0.1
+REDIS_PORT=16379
+```
+
+Keep MySQL and Redis bound to `127.0.0.1` unless there is a clear operational reason to expose them.
 
 ## Start
 
-```powershell
-docker compose up -d
+```bash
+./scripts/deploy.sh
+```
+
+Equivalent command:
+
+```bash
+docker compose --env-file .env up -d --build
 ```
 
 ## Check Status
 
-```powershell
-docker ps
+```bash
+docker compose ps
+docker inspect --format='{{.Name}} {{.State.Health.Status}}' \
+  kilisocial_app kilisocial_mysql kilisocial_redis
 ```
 
-Both `kilisocial_mysql` and `kilisocial_redis` should show `healthy`.
+All three services should be `healthy`.
+
+## Verify App
+
+```bash
+source .env
+curl -fsS "http://localhost:${APP_PORT}/actuator/health"
+curl -fsS "http://localhost:${APP_PORT}/api/v1/hello"
+```
 
 ## Verify MySQL Charset
 
-```powershell
-docker compose exec mysql mysql -u root -p"$env:MYSQL_ROOT_PASSWORD" -e "SHOW VARIABLES LIKE 'character_set_database';"
+```bash
+source .env
+docker compose exec mysql mysql -u root -p"${MYSQL_ROOT_PASSWORD}" \
+  -e "SHOW VARIABLES LIKE 'character_set_database';"
 ```
 
 Expected value:
@@ -43,8 +82,9 @@ utf8mb4
 
 ## Verify Redis
 
-```powershell
-docker compose exec redis redis-cli -a "$env:REDIS_PASSWORD" ping
+```bash
+source .env
+docker compose exec redis redis-cli -a "${REDIS_PASSWORD}" ping
 ```
 
 Expected response:
@@ -53,17 +93,23 @@ Expected response:
 PONG
 ```
 
-## Stop
+## Logs
 
-```powershell
-docker compose down
+```bash
+./scripts/logs.sh
 ```
 
-## Reset Local Data
+## Stop
+
+```bash
+./scripts/stop.sh
+```
+
+## Reset Data
 
 This removes containers and local persisted data.
 
-```powershell
-docker compose down
-Remove-Item -Recurse -Force .\data\mysql, .\data\redis
+```bash
+docker compose --env-file .env down
+sudo rm -rf data/mysql data/redis
 ```
