@@ -8,3 +8,9 @@ data/
 *.iml
 *.log
 .DS_Store
+target/
+.idea/
+.vscode/
+*.iml
+*.log
+.DS_Store
