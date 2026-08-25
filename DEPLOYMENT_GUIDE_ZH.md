@@ -52,18 +52,19 @@ newgrp docker
 
 脚本自动完成：检查/安装 Docker、拉取代码、生成 `.env` 并为 MySQL/Redis 生成强随机密码、提示未填写的占位符、构建并启动容器、等待健康检查、执行冒烟测试。
 
-新机器直接下载执行：
+先克隆再执行（推荐；服务器与 GitHub 已建立 SSH 信任时用 SSH 地址，避免 raw.githubusercontent.com 不可达）：
+
+```bash
+sudo mkdir -p /opt/kilisocial && sudo chown -R "$USER:$USER" /opt/kilisocial
+git clone git@github.com:skippersky/skipper_social.git /opt/kilisocial/skipper_social
+sudo bash /opt/kilisocial/skipper_social/scripts/init-deploy.sh
+```
+
+网络可达 raw.githubusercontent.com 时也可直接下载执行：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/skippersky/skipper_social/master/scripts/init-deploy.sh -o init-deploy.sh
 sudo bash init-deploy.sh
-```
-
-或先克隆再执行：
-
-```bash
-git clone https://github.com/skippersky/skipper_social.git /opt/kilisocial/skipper_social
-sudo bash /opt/kilisocial/skipper_social/scripts/init-deploy.sh
 ```
 
 可覆盖变量：

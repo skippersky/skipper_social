@@ -49,9 +49,12 @@ log "docker ready: $(docker --version), $(docker compose version)"
 # ---------- 3. source code ----------
 if [ -d "${APP_DIR}/.git" ]; then
   log "updating existing checkout at ${APP_DIR}"
-  git -C "${APP_DIR}" fetch --all --prune
-  git -C "${APP_DIR}" checkout "${REPO_BRANCH}"
-  git -C "${APP_DIR}" pull --ff-only
+  git -C "${APP_DIR}" checkout "${REPO_BRANCH}" 2>/dev/null || true
+  if git -C "${APP_DIR}" pull --ff-only; then
+    log "checkout updated to latest ${REPO_BRANCH}"
+  else
+    log "WARNING: pull failed (network/credentials); deploying the existing checkout as-is"
+  fi
 elif [ -e "${APP_DIR}" ]; then
   die "${APP_DIR} exists but is not a git checkout"
 else

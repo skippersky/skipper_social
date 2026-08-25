@@ -13,6 +13,14 @@ The target server can be Ubuntu 24.04 with other Docker projects running. Ports 
 For a brand-new Ubuntu 24.04 server, run the one-shot init script instead of the manual steps below. It installs Docker when missing, clones the repository, generates `.env` with strong random MySQL/Redis passwords, builds and starts the containers, waits for health checks, and runs smoke tests:
 
 ```bash
+sudo mkdir -p /opt/kilisocial && sudo chown -R "$USER:$USER" /opt/kilisocial
+git clone git@github.com:skippersky/skipper_social.git /opt/kilisocial/skipper_social
+sudo bash /opt/kilisocial/skipper_social/scripts/init-deploy.sh
+```
+
+If `raw.githubusercontent.com` is reachable but SSH is not configured, you can instead download the script directly:
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/skippersky/skipper_social/master/scripts/init-deploy.sh -o init-deploy.sh
 sudo bash init-deploy.sh
 ```
