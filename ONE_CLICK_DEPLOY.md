@@ -8,6 +8,16 @@ This deployment starts:
 
 The target server can be Ubuntu 24.04 with other Docker projects running. Ports are configurable in `.env`.
 
+## 0. First-time init (new servers)
+
+For a brand-new Ubuntu 24.04 server, run the one-shot init script instead of the manual steps below. It installs Docker when missing, clones the repository, generates `.env` with strong random MySQL/Redis passwords, builds and starts the containers, waits for health checks, and runs smoke tests:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/skippersky/skipper_social/master/scripts/init-deploy.sh -o init-deploy.sh
+sudo bash init-deploy.sh
+```
+
+After the script finishes, fill the remaining business keys in `.env` (Qwen/WA/FB/IG/TikTok) and run `./scripts/deploy.sh` once more. The sections below describe every manual step and day-2 operations.
 ## 1. Prepare
 
 ```bash

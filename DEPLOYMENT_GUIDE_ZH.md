@@ -46,6 +46,36 @@ newgrp docker
 
 ## 2. 从 Git 拉取代码
 
+公网仓库地址：`https://github.com/skippersky/skipper_social.git`，默认分支 `master`。
+
+### 方式 A：一键初始化脚本（推荐）
+
+脚本自动完成：检查/安装 Docker、拉取代码、生成 `.env` 并为 MySQL/Redis 生成强随机密码、提示未填写的占位符、构建并启动容器、等待健康检查、执行冒烟测试。
+
+新机器直接下载执行：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/skippersky/skipper_social/master/scripts/init-deploy.sh -o init-deploy.sh
+sudo bash init-deploy.sh
+```
+
+或先克隆再执行：
+
+```bash
+git clone https://github.com/skippersky/skipper_social.git /opt/kilisocial/skipper_social
+sudo bash /opt/kilisocial/skipper_social/scripts/init-deploy.sh
+```
+
+可覆盖变量：
+
+```bash
+REPO_BRANCH=master INSTALL_DIR=/opt/kilisocial sudo -E bash init-deploy.sh
+```
+
+业务密钥（Qwen/WA/FB/IG/TikTok 等）脚本不会代填，执行完成后按下一节修改 `/opt/kilisocial/skipper_social/.env`，再运行一次 `./scripts/deploy.sh` 即可。
+
+### 方式 B：手动克隆
+
 选择一个部署目录：
 
 ```bash
@@ -56,16 +86,16 @@ cd /opt/kilisocial
 首次拉取：
 
 ```bash
-git clone <YOUR_GIT_REPO_URL> kili-social
-cd kili-social
+git clone https://github.com/skippersky/skipper_social.git skipper_social
+cd skipper_social
 ```
 
 如果代码已存在：
 
 ```bash
-cd /opt/kilisocial/kili-social
+cd /opt/kilisocial/skipper_social
 git fetch --all
-git checkout main
+git checkout master
 git pull
 ```
 
@@ -280,9 +310,9 @@ sudo systemctl reload nginx
 ## 9. 更新部署
 
 ```bash
-cd /opt/kilisocial/kili-social
+cd /opt/kilisocial/skipper_social
 git fetch --all
-git checkout main
+git checkout master
 git pull
 ./scripts/deploy.sh
 ```
