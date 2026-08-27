@@ -146,7 +146,7 @@ TIKTOK_WEBHOOK_SECRET=<your_tiktok_webhook_secret>
 内存剩余约 5GB 时，建议保留：
 
 ```bash
-JAVA_OPTS=-Xms256m -Xmx768m
+JAVA_OPTS="-Xms256m -Xmx768m"
 ```
 
 ## 4. 一键启动
@@ -383,7 +383,7 @@ docker compose --env-file .env logs --tail=200 redis
 降低 JVM 上限：
 
 ```bash
-JAVA_OPTS=-Xms128m -Xmx512m
+JAVA_OPTS="-Xms128m -Xmx512m"
 ```
 
 然后重新部署：
