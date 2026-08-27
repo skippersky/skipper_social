@@ -50,15 +50,3 @@ kili:
       webhook-signature-tolerance-seconds: 300
       publish-reconcile-after-minutes: 5
       publish-reconcile-cron: "0 */10 * * * ?"
-spring:
-  application:
-    name: kili-social
-
-server:
-  port: 8080
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
