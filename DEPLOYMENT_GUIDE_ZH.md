@@ -285,29 +285,23 @@ hello-wa
 
 如果返回 `403`，检查 `.env` 中的 `WA_VERIFY_TOKEN` 是否与 Meta 后台配置一致。
 
-## 8. Nginx 反向代理示例
+## 8. Nginx 站点配置（init-deploy 自动管理）
 
-如果服务器已有 Nginx 占用 `80/443`，新增一个 location 转发到应用端口即可。
+站点配置文件为 `/etc/nginx/conf.d/social.hengzhanwujin.com.conf`，由 `scripts/init-deploy.sh` 在每次部署时自动安装并重载，无需手工维护：
 
-示例：
+- 服务器已有该域名证书（`/etc/letsencrypt/live/social.hengzhanwujin.com` 存在）：安装完整版 `deploy/nginx-social.conf`（80 跳 443 + TLS + `/api|/actuator|/swagger-ui|/v3` → 18080，其余 → 18081）
+- 全新服务器尚无证书：先安装引导版 `deploy/nginx-social-http.conf`，执行 `sudo certbot --nginx -d social.hengzhanwujin.com` 签发证书后重跑脚本
+- 安装前自动备份旧配置；`nginx -t` 失败时自动回滚，不会留下坏配置
+- 自动检测其他文件里重复定义同名 `server_name`（其他项目抢占域名的典型原因）并告警
+- 部署末尾对 `https://social.hengzhanwujin.com/actuator/health` 做冒烟断言，若域名被别的 server 块接走会直接报错并给出排查命令
 
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:18080;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-```
-
-检查并重载：
+如需手工检查：
 
 ```bash
-sudo nginx -t
-sudo systemctl reload nginx
+sudo grep -rn "server_name social.hengzhanwujin.com" /etc/nginx
+sudo nginx -t && sudo systemctl reload nginx
+curl -sk https://social.hengzhanwujin.com/actuator/health
 ```
-
 ## 9. 更新部署
 
 ```bash

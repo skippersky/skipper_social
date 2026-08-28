@@ -8,13 +8,17 @@
 #   REPO_URL    git repository to deploy (default: public GitHub mirror)
 #   REPO_BRANCH branch to deploy (default: master)
 #   INSTALL_DIR target directory (default: /opt/kilisocial)
+#   DOMAIN      public domain served by host nginx (default: social.hengzhanwujin.com)
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/skippersky/skipper_social.git}"
 REPO_BRANCH="${REPO_BRANCH:-master}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/kilisocial}"
+DOMAIN="${DOMAIN:-social.hengzhanwujin.com}"
 APP_DIR="${INSTALL_DIR}/skipper_social"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-240}"
+NGINX_DST="/etc/nginx/conf.d/${DOMAIN}.conf"
+CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
 
 log() { echo "[init-deploy] $*"; }
 die() { echo "[init-deploy][ERROR] $*" >&2; exit 1; }
@@ -88,11 +92,11 @@ set +e
 CONFLICT=0
 while read -r p; do
   if ss -ltn 2>/dev/null | grep -qE "[:.]${p}[[:space:]]"; then
-    log "WARNING: host port ${p} is already in use; adjust .env (APP_PORT/MYSQL_PORT/REDIS_PORT) if needed"
+    log "WARNING: host port ${p} is already in use; adjust .env (APP_PORT/MYSQL_PORT/REDIS_PORT/WEB_PORT) if needed"
     CONFLICT=1
   fi
 done <<EOF
-$(grep -E '^(APP_PORT|MYSQL_PORT|REDIS_PORT)=' .env | cut -d= -f2)
+$(grep -E '^(APP_PORT|MYSQL_PORT|REDIS_PORT|WEB_PORT)=' .env | cut -d= -f2)
 EOF
 [ "${CONFLICT}" -eq 0 ] && log "no port conflicts detected"
 set -e
@@ -104,10 +108,12 @@ docker compose --env-file .env up -d --build
 
 # ---------- 7. wait for healthy ----------
 log "waiting for containers to become healthy (timeout ${HEALTH_TIMEOUT_SECONDS}s)"
+CONTAINERS="kilisocial_app kilisocial_web kilisocial_mysql kilisocial_redis"
 elapsed=0
+ok=0
 while [ "${elapsed}" -lt "${HEALTH_TIMEOUT_SECONDS}" ]; do
   ok=1
-  for name in kilisocial_app kilisocial_mysql kilisocial_redis; do
+  for name in ${CONTAINERS}; do
     status="$(docker inspect --format='{{.State.Health.Status}}' "${name}" 2>/dev/null || echo starting)"
     [ "${status}" = "healthy" ] || { ok=0; break; }
   done
@@ -116,16 +122,70 @@ while [ "${elapsed}" -lt "${HEALTH_TIMEOUT_SECONDS}" ]; do
   elapsed=$((elapsed + 5))
 done
 docker compose --env-file .env ps
-for name in kilisocial_app kilisocial_mysql kilisocial_redis; do
+for name in ${CONTAINERS}; do
   log "${name} -> $(docker inspect --format='{{.State.Health.Status}}' "${name}" 2>/dev/null || echo missing)"
 done
 [ "${ok}" -eq 1 ] || die "containers did not become healthy within ${HEALTH_TIMEOUT_SECONDS}s; check: docker compose logs app"
 
-# ---------- 8. smoke test ----------
+# ---------- 8. host nginx site config ----------
+if command -v nginx >/dev/null 2>&1; then
+  # Detect duplicate server_name definitions (e.g. another project claiming this domain).
+  dupes="$(grep -rl "server_name[[:space:]]*${DOMAIN}" /etc/nginx/conf.d /etc/nginx/sites-enabled 2>/dev/null | grep -v "^${NGINX_DST}\$" || true)"
+  if [ -n "${dupes}" ]; then
+    log "WARNING: ${DOMAIN} is also defined in: $(echo "${dupes}" | tr '\n' ' '). Duplicate server blocks can hijack traffic; remove the stale one."
+  fi
+
+  if [ -d "${CERT_DIR}" ]; then
+    NGINX_SRC="deploy/nginx-social.conf"
+  else
+    NGINX_SRC="deploy/nginx-social-http.conf"
+    log "no TLS certificate for ${DOMAIN} yet; installing HTTP bootstrap config"
+  fi
+
+  if [ -f "${NGINX_SRC}" ]; then
+    [ -f "${NGINX_DST}" ] && cp -a "${NGINX_DST}" "${NGINX_DST}.bak"
+    cp -a "${NGINX_SRC}" "${NGINX_DST}"
+    if nginx_test_out="$(nginx -t 2>&1)"; then
+      systemctl reload nginx
+      log "nginx config installed from ${NGINX_SRC} and reloaded"
+    else
+      log "nginx -t rejected ${NGINX_SRC}: ${nginx_test_out}"
+      if [ -f "${NGINX_DST}.bak" ]; then
+        cp -a "${NGINX_DST}.bak" "${NGINX_DST}"
+      else
+        rm -f "${NGINX_DST}"
+      fi
+      nginx -t >/dev/null 2>&1 && systemctl reload nginx
+      die "nginx config rolled back. Fix the error above (often: certbot cert paths), then re-run this script."
+    fi
+  else
+    log "WARNING: ${NGINX_SRC} not found; skipping nginx install"
+  fi
+
+  if [ ! -d "${CERT_DIR}" ]; then
+    log "next step: sudo certbot --nginx -d ${DOMAIN} (choose reinstall/renew), then re-run this script to install the TLS config"
+  fi
+else
+  log "nginx not installed on this host; skipping site config (containers reachable on 127.0.0.1 ports)"
+fi
+
+# ---------- 9. smoke tests ----------
 APP_PORT="$(grep -E '^APP_PORT=' .env | cut -d= -f2)"
 APP_PORT="${APP_PORT:-18080}"
 log "smoke testing http://127.0.0.1:${APP_PORT}"
 curl -fsS "http://127.0.0.1:${APP_PORT}/actuator/health" && echo
 curl -fsS "http://127.0.0.1:${APP_PORT}/api/v1/hello" && echo
 
-log "deployment finished. App listens on 127.0.0.1:${APP_PORT}; point your reverse proxy there."
+if command -v nginx >/dev/null 2>&1 && [ -d "${CERT_DIR}" ]; then
+  log "smoke testing https://${DOMAIN} through host nginx"
+  domain_health="$(curl -sk --max-time 15 "https://${DOMAIN}/actuator/health" || true)"
+  if echo "${domain_health}" | grep -q '"status":"UP"'; then
+    log "domain smoke ok: ${domain_health}"
+    log "deployment finished. Public entry: https://${DOMAIN}"
+  else
+    final_url="$(curl -sk --max-time 15 -o /dev/null -w '%{url_effective}' -L "https://${DOMAIN}/actuator/health" || true)"
+    die "https://${DOMAIN} is NOT serving this app (response: ${domain_health:-empty}; final url: ${final_url}). Another nginx server block is catching this domain. Check: sudo grep -rn 'server_name ${DOMAIN}' /etc/nginx"
+  fi
+else
+  log "deployment finished. App listens on 127.0.0.1:${APP_PORT}; TLS/domain check skipped (no cert yet)."
+fi
