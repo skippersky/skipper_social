@@ -1,0 +1,99 @@
+/* KiliSocial design tokens - DESIGN_SYSTEM.md v1.0 (single source of truth) */
+:root {
+  --ks-bg-base: #16100D;
+  --ks-bg-surface: #201914;
+  --ks-bg-elevated: #2A211A;
+  --ks-bg-input: #251C15;
+  --ks-bg-overlay: rgba(0, 0, 0, 0.55);
+  --ks-border-default: rgba(244, 237, 228, 0.1);
+  --ks-border-input: rgba(244, 237, 228, 0.14);
+  --ks-border-hover: rgba(244, 237, 228, 0.18);
+  --ks-primary: #E8A33D;
+  --ks-primary-hover: #F2B455;
+  --ks-primary-pressed: #D18F2C;
+  --ks-primary-ink: #241505;
+  --ks-secondary: #E08B62;
+  --ks-ochre: #B5502E;
+  --ks-sand: #D9B36C;
+  --ks-indigo: #4A5A8A;
+  --ks-text-primary: #F4EDE4;
+  --ks-text-secondary: #C9BBA9;
+  --ks-text-tertiary: #9A8B78;
+  --ks-success: #90C177;
+  --ks-warning: #EBC15D;
+  --ks-error: #F0705A;
+  --ks-radius-btn: 10px;
+  --ks-radius-card: 12px;
+  --ks-radius-bubble: 16px;
+  --ks-shadow-float: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --ks-motion-fast: 150ms;
+  --ks-motion-normal: 300ms;
+  --ks-motion-slow: 500ms;
+  --ks-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Vant 4 theme overrides */
+  --van-blue: #E8A33D;
+  --van-primary-color: #E8A33D;
+  --van-background: #16100D;
+  --van-background-2: #201914;
+  --van-text-color: #F4EDE4;
+  --van-text-color-2: #C9BBA9;
+  --van-text-color-3: #9A8B78;
+  --van-border-color: rgba(244, 237, 228, 0.14);
+  --van-active-color: rgba(232, 163, 61, 0.12);
+  --van-button-primary-background: #E8A33D;
+  --van-button-primary-color: #241505;
+  --van-button-primary-border-color: #E8A33D;
+  --van-button-border-radius: 10px;
+  --van-nav-bar-background: #201914;
+  --van-nav-bar-title-text-color: #F4EDE4;
+  --van-nav-bar-icon-color: #C9BBA9;
+  --van-nav-bar-text-color: #C9BBA9;
+  --van-cell-background: #201914;
+  --van-cell-text-color: #F4EDE4;
+  --van-cell-value-color: #C9BBA9;
+  --van-cell-border-color: rgba(244, 237, 228, 0.1);
+  --van-field-input-text-color: #F4EDE4;
+  --van-field-placeholder-text-color: #9A8B78;
+  --van-field-text-color: #F4EDE4;
+  --van-radio-label-color: #F4EDE4;
+  --van-radio-checked-icon-color: #E8A33D;
+  --van-notice-bar-background: rgba(235, 193, 93, 0.12);
+  --van-notice-bar-text-color: #EBC15D;
+  --van-empty-description-color: #9A8B78;
+  --van-tabbar-background: #201914;
+  --van-tabbar-item-text-color: #C9BBA9;
+  --van-tabbar-item-active-color: #E8A33D;
+  --van-tabbar-item-active-background: transparent;
+  --van-toast-background: #2A211A;
+  --van-toast-text-color: #F4EDE4;
+}
+
+body {
+  margin: 0;
+  background: var(--ks-bg-base);
+  color: var(--ks-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 15px;
+  line-height: 23px;
+}
+
+h1, h2, h3, h4 {
+  font-family: Sora, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--ks-text-primary);
+  margin: 0;
+}
+
+a { color: var(--ks-primary); }
+
+:focus-visible {
+  outline: 2px solid var(--ks-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

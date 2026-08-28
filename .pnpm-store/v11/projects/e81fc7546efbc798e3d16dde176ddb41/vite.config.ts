@@ -10,8 +10,8 @@ export default defineConfig({
       manifest: {
         name: 'KiliSocial',
         short_name: 'Kili',
-        theme_color: '#1989fa',
-        background_color: '#f7f8fa',
+        theme_color: '#16100D',
+        background_color: '#16100D',
         display: 'standalone',
         start_url: '/',
         icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }]

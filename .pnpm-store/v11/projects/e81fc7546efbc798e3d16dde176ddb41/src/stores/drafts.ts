@@ -32,7 +32,7 @@ export const useDraftsStore = defineStore('drafts', () => {
   async function save(draft: Draft): Promise<void> {
     await load();
     const map: Record<string, Draft> = Object.fromEntries(drafts.value.map((d) => [d.id, d]));
-    map[draft.id] = { ...draft, updatedAt: Date.now() };
+    map[draft.id] = { ...draft };
     drafts.value = Object.values(map);
     await persist(map);
   }

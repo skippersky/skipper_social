@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, apiPost } from '../api/http';
+import { apiGet, ApiError, apiPost } from '../api/http';
 
 function stubFetch(payload: unknown, ok = true, status = 200) {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -29,5 +29,21 @@ describe('apiPost', () => {
     stubFetch({ success: false, code: 'INTERNAL_ERROR', message: 'boom', data: null }, false, 500);
 
     await expect(apiPost('/x', {})).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe('apiGet', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('returns data on success envelope', async () => {
+    stubFetch({ success: true, code: 'OK', message: 'success', data: [1, 2] });
+
+    await expect(apiGet<number[]>('/y')).resolves.toEqual([1, 2]);
+  });
+
+  it('throws ApiError when envelope fails', async () => {
+    stubFetch({ success: false, code: 'NOT_FOUND', message: 'gone', data: null }, false, 404);
+
+    await expect(apiGet('/y')).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });

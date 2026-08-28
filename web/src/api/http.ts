@@ -12,8 +12,22 @@ export class ApiError extends Error {
   }
 }
 
+/** Same-origin by default (nginx proxies /api); override via VITE_API_BASE. */
 export function apiBase(): string {
   return (import.meta.env.VITE_API_BASE as string | undefined) ?? '';
+}
+
+async function unwrap<T>(response: Response): Promise<T> {
+  const payload = (await response.json()) as ApiResponse<T>;
+  if (!response.ok || !payload.success) {
+    throw new ApiError(payload.code ?? `HTTP_${response.status}`, payload.message ?? response.statusText);
+  }
+  return payload.data;
+}
+
+export async function apiGet<T>(path: string): Promise<T> {
+  const response = await fetch(`${apiBase()}${path}`);
+  return unwrap<T>(response);
 }
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
@@ -22,9 +36,5 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
-  const payload = (await response.json()) as ApiResponse<T>;
-  if (!response.ok || !payload.success) {
-    throw new ApiError(payload.code ?? `HTTP_${response.status}`, payload.message ?? response.statusText);
-  }
-  return payload.data;
+  return unwrap<T>(response);
 }
