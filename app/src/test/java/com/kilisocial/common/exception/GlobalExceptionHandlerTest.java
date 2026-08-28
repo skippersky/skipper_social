@@ -3,8 +3,12 @@ package com.kilisocial.common.exception;
 import com.kilisocial.common.api.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,6 +38,26 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().code()).isEqualTo("VALIDATION_ERROR");
+    }
+
+    @Test
+    void handleNoHandlerFoundExceptionReturnsNotFound() {
+        NoHandlerFoundException exception = new NoHandlerFoundException("GET", "/", new HttpHeaders());
+        ResponseEntity<ApiResponse<Void>> response = handler.handleNoHandlerFoundException(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("NOT_FOUND");
+    }
+
+    @Test
+    void handleNoResourceFoundExceptionReturnsNotFound() {
+        NoResourceFoundException exception = new NoResourceFoundException(HttpMethod.GET, "favicon.ico");
+        ResponseEntity<ApiResponse<Void>> response = handler.handleNoResourceFoundException(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("NOT_FOUND");
     }
 
     @Test

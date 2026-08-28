@@ -5,6 +5,8 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -18,6 +20,7 @@ public class GlobalExceptionHandler {
 
     private static final String VALIDATION_ERROR_CODE = "VALIDATION_ERROR";
     private static final String INTERNAL_ERROR_CODE = "INTERNAL_ERROR";
+    private static final String NOT_FOUND_CODE = "NOT_FOUND";
 
     /**
      * Handles expected business exceptions.
@@ -52,6 +55,28 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolationException(
             ConstraintViolationException exception) {
         return ResponseEntity.badRequest().body(error(VALIDATION_ERROR_CODE, exception.getMessage()));
+    }
+
+    /**
+     * Handles requests that match no endpoint.
+     *
+     * @param exception no-handler exception
+     * @return normalized not-found response
+     */
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoHandlerFoundException(NoHandlerFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error(NOT_FOUND_CODE, "Resource not found"));
+    }
+
+    /**
+     * Handles missing static resource errors.
+     *
+     * @param exception no-resource exception
+     * @return normalized not-found response
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFoundException(NoResourceFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error(NOT_FOUND_CODE, "Resource not found"));
     }
 
     /**
