@@ -39,7 +39,7 @@ kili:
       pkce-enabled: false
       client-key: sbawkzswtdcg035vii
       client-secret: oqHjzuS6383LSvyTDqpXAknvp1yLyobK
-      redirect-uri: https://merchant4.test.kilimax.com/social/tiktok/callback
+      redirect-uri: https://social.hengzhanwujin.com/social/tiktok/callback
       default-privacy-level: PUBLIC_TO_EVERYONE
       scope: user.info.basic,user.info.profile,video.publish,video.upload
       photo-status-max-attempts: 15
