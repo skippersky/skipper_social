@@ -50,3 +50,30 @@ kili:
       webhook-signature-tolerance-seconds: 300
       publish-reconcile-after-minutes: 5
       publish-reconcile-cron: "0 */10 * * * ?"
+  qwen:
+    api-key: ${QWEN_API_KEY:}
+    base-url: https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation
+    connect-timeout-ms: 5000
+    read-timeout-ms: 30000
+  copywriting:
+    templates:
+      - locale: en
+        content-type: social_post
+        model: qwen-turbo
+        system-prompt: You are a social media marketing assistant for African small-business sellers.
+        user-template: "Write a short, friendly social media post about: {content}"
+      - locale: sw
+        content-type: social_post
+        model: qwen-turbo
+        system-prompt: Wewe ni msaidizi wa masoko kwa wachuuzi wadogo wa Afrika.
+        user-template: "Andika chapisho fupi na la kirafiki kuhusu: {content}"
+      - locale: en
+        content-type: caption_generation
+        model: qwen-turbo
+        system-prompt: You write engaging captions for product photos and videos.
+        user-template: "Write an engaging caption for this media: {media_url}"
+      - locale: sw
+        content-type: caption_generation
+        model: qwen-turbo
+        system-prompt: Wewe huandika maneno ya kuvutia kwa picha na video za bidhaa.
+        user-template: "Andika maelezo ya kuvutia kwa midia hii: {media_url}"

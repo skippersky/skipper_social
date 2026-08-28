@@ -19,6 +19,7 @@
     <description>KiliSocial MVP backend service</description>
 
     <modules>
+        <module>common</module>
         <module>app</module>
         <module>ai-service</module>
         <module>wa-webhook-controller</module>

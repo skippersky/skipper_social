@@ -1,0 +1,31 @@
+{
+  "name": "kili-social-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run --coverage",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "localforage": "^1.10.0",
+    "pinia": "^2.2.2",
+    "vant": "^4.9.4",
+    "vue": "^3.4.38",
+    "vue-router": "^4.4.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.2",
+    "@vitest/coverage-v8": "^2.0.5",
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^24.1.1",
+    "typescript": "~5.5.4",
+    "vite": "^5.4.2",
+    "vite-plugin-pwa": "^0.20.1",
+    "vitest": "^2.0.5",
+    "vue-tsc": "^2.0.29"
+  }
+}

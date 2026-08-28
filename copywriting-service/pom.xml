@@ -18,6 +18,11 @@
     <dependencies>
         <dependency>
             <groupId>com.kilisocial</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.kilisocial</groupId>
             <artifactId>ai-service</artifactId>
             <version>${project.version}</version>
         </dependency>
