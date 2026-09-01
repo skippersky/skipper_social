@@ -10,6 +10,7 @@ function makeRouter() {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
+      { path: '/', component: { template: '<div />' } },
       { path: '/editor', component: EditorView },
       { path: '/drafts', component: { template: '<div />' } }
     ]
@@ -22,7 +23,7 @@ async function mountEditor() {
   await router.isReady();
   const pinia = createPinia();
   const wrapper = mount(EditorView, { global: { plugins: [pinia, router, Vant] } });
-  return { wrapper, pinia };
+  return { wrapper, pinia, router };
 }
 
 function stubAi(data: string) {
@@ -66,5 +67,14 @@ describe('EditorView', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(useDraftsStore(pinia).drafts).toHaveLength(1);
+  });
+
+  it('back button returns to home', async () => {
+    const { wrapper, router } = await mountEditor();
+
+    await wrapper.find('.page__home').trigger('click');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(router.currentRoute.value.path).toBe('/');
   });
 });

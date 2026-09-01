@@ -22,6 +22,7 @@ async function onDelete(id: string): Promise<void> {
 <template>
   <div class="page">
     <header class="page__head">
+      <button class="page__home" type="button" :aria-label="i18n.t('common.backHome')" @click="router.push('/')">←</button>
       <h2 class="page__title">{{ i18n.t('drafts.title') }}</h2>
     </header>
     <div class="card drafts-card">
@@ -49,7 +50,23 @@ async function onDelete(id: string): Promise<void> {
   padding: 28px 24px 48px;
 }
 .page__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
+}
+.page__home {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ks-text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+}
+.page__home:hover {
+  background: var(--ks-bg-muted);
 }
 .page__title {
   font-size: 24px;

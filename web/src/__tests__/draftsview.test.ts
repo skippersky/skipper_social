@@ -34,4 +34,25 @@ describe('DraftsView', () => {
 
     expect(wrapper.text()).not.toContain('hello draft');
   });
+
+  it('back button returns to home', async () => {
+    const pinia = createPinia();
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: { template: '<div />' } },
+        { path: '/drafts', component: DraftsView }
+      ]
+    });
+    router.push('/drafts');
+    await router.isReady();
+
+    const wrapper = mount(DraftsView, { global: { plugins: [pinia, router, Vant] } });
+    await wrapper.vm.$nextTick();
+
+    await wrapper.find('.page__home').trigger('click');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(router.currentRoute.value.path).toBe('/');
+  });
 });

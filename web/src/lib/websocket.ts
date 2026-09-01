@@ -19,6 +19,9 @@ interface SocketEnvelope {
 
 export type SocketState = 'connecting' | 'open' | 'closed';
 
+/** Report "connecting" only for the first attempts; prolonged failure reads offline. */
+export const MAX_CONNECTING_ATTEMPTS = 3;
+
 /**
  * Exponential backoff: 1s, 2s, 4s, ... capped at 30s.
  */
@@ -85,7 +88,8 @@ export class ConversationSocket {
       this.options.onStateChange?.('closed');
       return;
     }
-    this.options.onStateChange?.('connecting');
+    const state: SocketState = this.attempt < MAX_CONNECTING_ATTEMPTS ? 'connecting' : 'closed';
+    this.options.onStateChange?.(state);
     let socket: WebSocket;
     try {
       socket = new Impl(this.options.url);

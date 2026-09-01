@@ -183,4 +183,15 @@ describe('ConversationSocket', () => {
     expect(FakeSocket.instances[0].closed).toBe(true);
     expect(states[states.length - 1]).toBe('closed');
   });
+
+  it('reports offline after repeated failed connection attempts', () => {
+    const { scheduled, states } = setup();
+
+    for (let i = 0; i < 3; i += 1) {
+      FakeSocket.instances[i].onclose?.();
+      scheduled[i].fn();
+    }
+
+    expect(states[states.length - 1]).toBe('closed');
+  });
 });
