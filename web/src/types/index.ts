@@ -1,3 +1,7 @@
+/**
+ * Client-side mirror of the Sprint 3 backend DTO contract (see API_CONTRACT.md).
+ * Until the backend exposes these endpoints the client degrades to mock data.
+ */
 export interface Conversation {
   id: string;
   contactName: string;
@@ -20,4 +24,6 @@ export interface Message {
   sender: MessageSender;
   timestamp: number;
   status: MessageStatus;
+  /** Present for image/location messages (image URL or map link). */
+  mediaUrl?: string;
 }

@@ -1,16 +1,27 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import ConversationList from '../components/ConversationList.vue';
 import ChatWindow from '../components/ChatWindow.vue';
-import { fetchConversations } from '../api/conversations';
+import { fetchConversations, fetchMessages } from '../api/conversations';
 import { useI18nStore } from '../i18n';
-import type { Conversation } from '../types';
+import { ConversationSocket, defaultWsUrl, type ConversationUpdate, type MessageStatusUpdate, type SocketState } from '../lib/websocket';
+import type { Conversation, Message } from '../types';
 
 const router = useRouter();
 const i18n = useI18nStore();
+
 const conversations = ref<Conversation[]>([]);
+const conversationsLoading = ref(true);
+const conversationsDegraded = ref(false);
+
 const selected = ref<Conversation | null>(null);
+const messages = ref<Message[]>([]);
+const messagesLoading = ref(false);
+const messagesDegraded = ref(false);
+
+const wsState = ref<SocketState>('closed');
+let socket: ConversationSocket | null = null;
 const isMobile = ref(false);
 
 if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
@@ -21,13 +32,75 @@ if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
   });
 }
 
-onMounted(async () => {
-  conversations.value = await fetchConversations();
-});
+const wsLabelKey = { open: 'chat.wsOpen', connecting: 'chat.wsConnecting', closed: 'chat.wsClosed' } as const;
+
+async function loadConversations(): Promise<void> {
+  conversationsLoading.value = true;
+  const result = await fetchConversations();
+  conversations.value = result.data;
+  conversationsDegraded.value = result.degraded;
+  conversationsLoading.value = false;
+}
+
+async function loadMessages(conversationId: string): Promise<void> {
+  messagesLoading.value = true;
+  const result = await fetchMessages(conversationId);
+  if (selected.value?.id === conversationId) {
+    messages.value = result.data;
+    messagesDegraded.value = result.degraded;
+  }
+  messagesLoading.value = false;
+}
 
 function onSelect(conversation: Conversation): void {
   selected.value = conversation;
+  messages.value = [];
+  messagesDegraded.value = false;
+  void loadMessages(conversation.id);
 }
+
+function applyUpdate(update: ConversationUpdate): void {
+  conversations.value = conversations.value.map((c) =>
+    c.id === update.conversationId
+      ? {
+          ...c,
+          lastMessage: update.lastMessage,
+          lastMessageTime: update.lastMessageTime,
+          unreadCount: update.unreadCount ?? c.unreadCount
+        }
+      : c
+  );
+  if (selected.value?.id === update.conversationId) {
+    selected.value = { ...selected.value, lastMessage: update.lastMessage, lastMessageTime: update.lastMessageTime };
+  }
+}
+
+function applyNewMessage(message: Message): void {
+  if (selected.value?.id === message.conversationId && !messages.value.some((m) => m.id === message.id)) {
+    messages.value = [...messages.value, message];
+  }
+}
+
+function applyStatus(update: MessageStatusUpdate): void {
+  messages.value = messages.value.map((m) => (m.id === update.messageId ? { ...m, status: update.status } : m));
+}
+
+onMounted(async () => {
+  await loadConversations();
+  socket = new ConversationSocket({
+    url: defaultWsUrl(),
+    onStateChange: (state) => {
+      wsState.value = state;
+    },
+    onUpdate: applyUpdate,
+    onNewMessage: applyNewMessage,
+    onMessageStatus: applyStatus
+  });
+});
+
+onUnmounted(() => {
+  socket?.close();
+});
 
 function backToList(): void {
   selected.value = null;
@@ -42,9 +115,22 @@ function backToList(): void {
           ←
         </button>
         <h2 class="chat-page__title">{{ i18n.t('chat.title') }}</h2>
+        <span class="chat-page__ws" :class="`chat-page__ws--${wsState}`" :title="i18n.t(wsLabelKey[wsState])">
+          <span class="chat-page__ws-dot" aria-hidden="true"></span>
+          {{ i18n.t(wsLabelKey[wsState]) }}
+        </span>
         <span class="chat-page__count">{{ conversations.length }}</span>
       </div>
+      <div v-if="conversationsDegraded && !conversationsLoading" class="chat-page__notice">
+        <span>{{ i18n.t('api.network') }}</span>
+        <button type="button" @click="loadConversations">{{ i18n.t('common.retry') }}</button>
+      </div>
+      <div v-if="conversationsLoading" class="chat-page__loading">
+        <van-skeleton title :row="6" />
+      </div>
+      <van-empty v-else-if="conversations.length === 0" :description="i18n.t('chat.empty')" />
       <ConversationList
+        v-else
         :conversations="conversations"
         :selected-id="selected?.id ?? null"
         @select="onSelect"
@@ -59,7 +145,13 @@ function backToList(): void {
       >
         ← {{ i18n.t('chat.back') }}
       </button>
-      <ChatWindow :conversation="selected" />
+      <ChatWindow
+        :conversation="selected"
+        :messages="messages"
+        :loading="messagesLoading"
+        :degraded="messagesDegraded"
+        @retry="selected && loadMessages(selected.id)"
+      />
     </main>
   </div>
 </template>
@@ -105,14 +197,55 @@ function backToList(): void {
   line-height: 28px;
   font-weight: 600;
 }
-.chat-page__count {
+.chat-page__ws {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ks-text-tertiary);
+}
+.chat-page__ws-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ks-text-tertiary);
+}
+.chat-page__ws--open .chat-page__ws-dot {
+  background: var(--ks-success);
+}
+.chat-page__ws--connecting .chat-page__ws-dot {
+  background: var(--ks-warning);
+}
+.chat-page__count {
   font-size: 12px;
   line-height: 18px;
   color: var(--ks-text-tertiary);
   background: var(--ks-bg-muted);
   border-radius: 999px;
   padding: 2px 10px;
+}
+.chat-page__notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--ks-warning);
+  background: rgba(180, 83, 9, 0.08);
+  border-bottom: 1px solid var(--ks-border-default);
+}
+.chat-page__notice button {
+  border: none;
+  background: transparent;
+  color: var(--ks-primary-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-page__loading {
+  padding: 16px;
 }
 .chat-page__main {
   flex: 1;

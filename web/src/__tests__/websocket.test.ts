@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { backoffDelay, ConversationSocket, type ConversationUpdate } from '../lib/websocket';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  backoffDelay,
+  ConversationSocket,
+  defaultWsUrl,
+  type ConversationUpdate,
+  type MessageStatusUpdate
+} from '../lib/websocket';
+import type { Message } from '../types';
 
 class FakeSocket {
   static instances: FakeSocket[] = [];
@@ -26,6 +33,8 @@ function setup() {
   FakeSocket.instances = [];
   const scheduled: Scheduled[] = [];
   const updates: ConversationUpdate[] = [];
+  const newMessages: Message[] = [];
+  const statusUpdates: MessageStatusUpdate[] = [];
   const states: string[] = [];
   const socket = new ConversationSocket({
     url: 'ws://localhost/ws',
@@ -34,9 +43,11 @@ function setup() {
       scheduled.push({ fn, delay });
     },
     onUpdate: (update) => updates.push(update),
+    onNewMessage: (message) => newMessages.push(message),
+    onMessageStatus: (update) => statusUpdates.push(update),
     onStateChange: (state) => states.push(state)
   });
-  return { scheduled, updates, states, socket };
+  return { scheduled, updates, newMessages, statusUpdates, states, socket };
 }
 
 describe('backoffDelay', () => {
@@ -53,6 +64,23 @@ describe('backoffDelay', () => {
 
   it('treats negative attempts as zero', () => {
     expect(backoffDelay(-3)).toBe(1000);
+  });
+});
+
+describe('defaultWsUrl', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('honours the VITE_WS_URL override', () => {
+    vi.stubEnv('VITE_WS_URL', 'wss://api.example.test/ws');
+    expect(defaultWsUrl()).toBe('wss://api.example.test/ws');
+  });
+
+  it('falls back to the same-origin /ws endpoint', () => {
+    const url = defaultWsUrl();
+    expect(url.startsWith('ws')).toBe(true);
+    expect(url.endsWith('/ws')).toBe(true);
   });
 });
 
@@ -79,13 +107,51 @@ describe('ConversationSocket', () => {
     expect(updates[0]).toMatchObject({ conversationId: 'c-1', lastMessage: 'hi' });
   });
 
+  it('dispatches new_message payloads', () => {
+    const { newMessages } = setup();
+    const socket = FakeSocket.instances[0];
+    socket.onmessage?.({
+      data: JSON.stringify({
+        event: 'new_message',
+        data: {
+          id: 'm-9',
+          conversationId: 'c-1',
+          content: 'hi',
+          type: 'text',
+          sender: 'contact',
+          timestamp: 5,
+          status: 'sent'
+        }
+      })
+    });
+
+    expect(newMessages).toHaveLength(1);
+    expect(newMessages[0]).toMatchObject({ id: 'm-9', conversationId: 'c-1' });
+  });
+
+  it('dispatches message_status_update payloads', () => {
+    const { statusUpdates } = setup();
+    const socket = FakeSocket.instances[0];
+    socket.onmessage?.({
+      data: JSON.stringify({
+        event: 'message_status_update',
+        data: { messageId: 'm-2', status: 'read' }
+      })
+    });
+
+    expect(statusUpdates).toHaveLength(1);
+    expect(statusUpdates[0]).toMatchObject({ messageId: 'm-2', status: 'read' });
+  });
+
   it('ignores malformed or unrelated payloads', () => {
-    const { updates } = setup();
+    const { updates, newMessages, statusUpdates } = setup();
     const socket = FakeSocket.instances[0];
     socket.onmessage?.({ data: '{not json' });
     socket.onmessage?.({ data: JSON.stringify({ event: 'other', data: {} }) });
 
     expect(updates).toHaveLength(0);
+    expect(newMessages).toHaveLength(0);
+    expect(statusUpdates).toHaveLength(0);
   });
 
   it('reconnects with exponential backoff after close', () => {

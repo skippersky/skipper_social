@@ -17,6 +17,35 @@ export function apiBase(): string {
   return (import.meta.env.VITE_API_BASE as string | undefined) ?? '';
 }
 
+export const REQUEST_TIMEOUT_MS = 10_000;
+
+/** Maps an ApiError/HTTP status to an i18n key for user-friendly display. */
+export function apiErrorI18nKey(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.code === 'TIMEOUT') return 'api.timeout';
+    if (error.code === 'HTTP_401' || error.code === 'UNAUTHORIZED') return 'api.401';
+    if (error.code === 'HTTP_403' || error.code === 'FORBIDDEN') return 'api.403';
+    if (error.code === 'HTTP_404' || error.code === 'NOT_FOUND') return 'api.404';
+    if (error.code.startsWith('HTTP_5')) return 'api.500';
+  }
+  return 'api.network';
+}
+
+async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new ApiError('TIMEOUT', 'request timed out');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function unwrap<T>(response: Response): Promise<T> {
   const payload = (await response.json()) as ApiResponse<T>;
   if (!response.ok || !payload.success) {
@@ -25,13 +54,27 @@ async function unwrap<T>(response: Response): Promise<T> {
   return payload.data;
 }
 
+function isRetriable(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    return error.code === 'TIMEOUT' || error.code.startsWith('HTTP_5');
+  }
+  return true;
+}
+
+/** GET with one automatic retry on transient failures (network/timeout/5xx). */
 export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${apiBase()}${path}`);
-  return unwrap<T>(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase()}${path}`);
+    return await unwrap<T>(response);
+  } catch (error) {
+    if (!isRetriable(error)) throw error;
+    const response = await fetchWithTimeout(`${apiBase()}${path}`);
+    return unwrap<T>(response);
+  }
 }
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${apiBase()}${path}`, {
+  const response = await fetchWithTimeout(`${apiBase()}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)

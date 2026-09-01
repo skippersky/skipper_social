@@ -1,10 +1,25 @@
 <script setup lang="ts">
 import KsAvatar from './KsAvatar.vue';
 import { useI18nStore } from '../i18n';
-import type { Conversation } from '../types';
+import { relativeTime } from '../lib/relativeTime';
+import type { Conversation, Message, MessageStatus } from '../types';
 
-defineProps<{ conversation: Conversation | null }>();
+defineProps<{
+  conversation: Conversation | null;
+  messages: Message[];
+  loading: boolean;
+  degraded: boolean;
+}>();
+
+defineEmits<{ (event: 'retry'): void }>();
+
 const i18n = useI18nStore();
+
+function statusGlyph(status: MessageStatus): string {
+  if (status === 'sending') return '...';
+  if (status === 'sent') return '✓';
+  return '✓✓';
+}
 </script>
 
 <template>
@@ -21,8 +36,49 @@ const i18n = useI18nStore();
           <p class="chat-window__contact-phone">{{ conversation.contactPhone }}</p>
         </div>
       </header>
+      <div v-if="degraded && !loading" class="chat-window__notice">
+        <span>{{ i18n.t('api.network') }}</span>
+        <button type="button" @click="$emit('retry')">{{ i18n.t('common.retry') }}</button>
+      </div>
       <div class="chat-window__messages">
-        <p class="chat-window__messages-hint">{{ i18n.t('chat.messagesHint') }}</p>
+        <van-skeleton v-if="loading" title :row="4" class="chat-window__skeleton" />
+        <p v-else-if="messages.length === 0" class="chat-window__messages-hint">
+          {{ i18n.t('chat.messagesHint') }}
+        </p>
+        <div v-else class="chat-window__thread">
+          <div
+            v-for="message in messages"
+            :key="message.id"
+            class="msg"
+            :class="message.sender === 'user' ? 'msg--user' : 'msg--contact'"
+          >
+            <div class="msg__bubble">
+              <img
+                v-if="message.type === 'image' && message.mediaUrl"
+                :src="message.mediaUrl"
+                :alt="message.content"
+                class="msg__image"
+              />
+              <a
+                v-else-if="message.type === 'location' && message.mediaUrl"
+                class="msg__location"
+                :href="message.mediaUrl"
+                target="_blank"
+                rel="noopener"
+              >
+                <span class="msg__location-label">{{ i18n.t('msg.location') }}</span>
+                <span class="msg__location-name">{{ message.content }}</span>
+              </a>
+              <span v-else class="msg__text">{{ message.content }}</span>
+            </div>
+            <p class="msg__meta">
+              {{ relativeTime(message.timestamp, Date.now(), i18n.locale) }}
+              <span v-if="message.sender === 'user'" class="msg__status" :title="message.status">
+                {{ statusGlyph(message.status) }}
+              </span>
+            </p>
+          </div>
+        </div>
       </div>
       <footer class="chat-window__composer">
         <input
@@ -85,18 +141,107 @@ const i18n = useI18nStore();
   font-size: 12px;
   line-height: 18px;
 }
-.chat-window__messages {
-  flex: 1;
+.chat-window__notice {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 20px;
+  font-size: 12px;
+  color: var(--ks-warning);
+  background: rgba(180, 83, 9, 0.08);
+  border-bottom: 1px solid var(--ks-border-default);
+}
+.chat-window__notice button {
+  border: none;
+  background: transparent;
+  color: var(--ks-primary-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-window__messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+.chat-window__skeleton {
+  max-width: 480px;
 }
 .chat-window__messages-hint {
-  margin: 0;
+  margin: auto;
   color: var(--ks-text-tertiary);
   font-size: 14px;
   line-height: 21px;
+}
+.chat-window__thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 76%;
+}
+.msg--contact {
+  align-self: flex-start;
+}
+.msg--user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.msg__bubble {
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 23px;
+}
+.msg--contact .msg__bubble {
+  background: var(--ks-bg-muted);
+  color: var(--ks-text-primary);
+  border-radius: 16px 16px 16px 4px;
+}
+.msg--user .msg__bubble {
+  background: var(--ks-grad-brand);
+  color: var(--ks-ink-on-grad);
+  border-radius: 16px 16px 4px 16px;
+}
+.msg__image {
+  display: block;
+  max-width: 240px;
+  border-radius: 10px;
+}
+.msg__location {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-decoration: none;
+  color: inherit;
+}
+.msg__location-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.msg__location-name {
+  text-decoration: underline;
+}
+.msg__meta {
+  margin: 4px 2px 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ks-text-tertiary);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.msg__status {
+  color: var(--ks-success);
+  font-size: 11px;
 }
 .chat-window__composer {
   display: flex;
