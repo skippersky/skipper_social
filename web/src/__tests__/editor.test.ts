@@ -62,7 +62,7 @@ describe('EditorView', () => {
     const { wrapper, pinia } = await mountEditor();
     await wrapper.find('textarea').setValue('my draft');
 
-    await wrapper.findAll('button').filter((b) => b.text().includes('存草稿')).at(0)!.trigger('click');
+    await wrapper.findAll('button').filter((b) => b.text().includes('Save')).at(0)!.trigger('click');
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(useDraftsStore(pinia).drafts).toHaveLength(1);

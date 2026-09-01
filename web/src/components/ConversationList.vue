@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import KsAvatar from './KsAvatar.vue';
+import { useI18nStore } from '../i18n';
 import { relativeTime } from '../lib/relativeTime';
 import type { Conversation } from '../types';
 
@@ -11,6 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ (event: 'select', conversation: Conversation): void }>();
 
+const i18n = useI18nStore();
 const PREVIEW_LIMIT = 30;
 
 function preview(conversation: Conversation): string {
@@ -28,7 +30,7 @@ const sorted = computed(() =>
 </script>
 
 <template>
-  <ul class="conv-list" role="listbox" aria-label="会话列表">
+  <ul class="conv-list" role="listbox" aria-label="Conversations">
     <li
       v-for="conversation in sorted"
       :key="conversation.id"
@@ -44,7 +46,7 @@ const sorted = computed(() =>
       <div class="conv-item__body">
         <div class="conv-item__row">
           <span class="conv-item__name">{{ conversation.contactName }}</span>
-          <span class="conv-item__time">{{ relativeTime(conversation.lastMessageTime) }}</span>
+          <span class="conv-item__time">{{ relativeTime(conversation.lastMessageTime, Date.now(), i18n.locale) }}</span>
         </div>
         <div class="conv-item__row">
           <span class="conv-item__preview">{{ preview(conversation) }}</span>
@@ -73,10 +75,10 @@ const sorted = computed(() =>
   transition: background var(--ks-motion-fast) var(--ks-ease);
 }
 .conv-item:hover {
-  background: var(--ks-bg-elevated);
+  background: var(--ks-bg-muted);
 }
 .conv-item--selected {
-  background: rgba(232, 163, 61, 0.1);
+  background: var(--ks-grad-soft);
   border-left-color: var(--ks-primary);
 }
 .conv-item__body {
@@ -117,7 +119,7 @@ const sorted = computed(() =>
   padding: 0 5px;
   border-radius: 999px;
   background: var(--ks-primary);
-  color: var(--ks-primary-ink);
+  color: #FFFFFF;
   font-size: 12px;
   line-height: 18px;
   font-weight: 600;

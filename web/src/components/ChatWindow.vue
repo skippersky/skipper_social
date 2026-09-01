@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import KsAvatar from './KsAvatar.vue';
+import { useI18nStore } from '../i18n';
 import type { Conversation } from '../types';
 
 defineProps<{ conversation: Conversation | null }>();
+const i18n = useI18nStore();
 </script>
 
 <template>
   <div class="chat-window">
     <div v-if="!conversation" class="chat-window__empty">
-      <h3 class="chat-window__empty-title">选择一个对话开始聊天</h3>
-      <p class="chat-window__empty-hint">从会话列表中挑选一位联系人</p>
+      <h3 class="chat-window__empty-title">{{ i18n.t('chat.emptyTitle') }}</h3>
+      <p class="chat-window__empty-hint">{{ i18n.t('chat.emptyHint') }}</p>
     </div>
     <template v-else>
       <header class="chat-window__header">
@@ -20,17 +22,17 @@ defineProps<{ conversation: Conversation | null }>();
         </div>
       </header>
       <div class="chat-window__messages">
-        <p class="chat-window__messages-hint">暂无消息记录，收发功能将在下一阶段开放</p>
+        <p class="chat-window__messages-hint">{{ i18n.t('chat.messagesHint') }}</p>
       </div>
       <footer class="chat-window__composer">
         <input
           class="chat-window__input"
           type="text"
-          placeholder="消息功能开发中，敬请期待"
+          :placeholder="i18n.t('chat.composerPlaceholder')"
           disabled
           aria-disabled="true"
         />
-        <button class="chat-window__send" type="button" disabled>发送</button>
+        <button class="chat-window__send" type="button" disabled>{{ i18n.t('chat.send') }}</button>
       </footer>
     </template>
   </div>
@@ -109,8 +111,8 @@ defineProps<{ conversation: Conversation | null }>();
   height: 44px;
   padding: 0 12px;
   border-radius: var(--ks-radius-btn);
-  border: 1px solid var(--ks-border-input);
-  background: var(--ks-bg-input);
+  border: 1px solid var(--ks-border-strong);
+  background: var(--ks-bg-surface);
   color: var(--ks-text-primary);
   font-size: 15px;
 }
@@ -118,17 +120,18 @@ defineProps<{ conversation: Conversation | null }>();
   color: var(--ks-text-tertiary);
 }
 .chat-window__input:disabled {
-  opacity: 0.6;
+  background: var(--ks-bg-muted);
+  opacity: 0.8;
 }
 .chat-window__send {
   height: 44px;
   padding: 0 20px;
   border: none;
   border-radius: var(--ks-radius-btn);
-  background: var(--ks-primary);
-  color: var(--ks-primary-ink);
+  background: var(--ks-grad-brand);
+  color: var(--ks-ink-on-grad);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
 }
 .chat-window__send:disabled {

@@ -5,11 +5,13 @@ const props = withDefaults(defineProps<{ name: string; src?: string; size?: numb
   size: 48
 });
 
-const FALLBACK_COLORS = ['#E8A33D', '#E08B62', '#D9B36C'];
+const FALLBACKS = [
+  { bg: '#FFB238', fg: '#221507' },
+  { bg: '#F4633A', fg: '#221507' },
+  { bg: '#5B5BD6', fg: '#FFFFFF' }
+];
 
-const background = computed(
-  () => FALLBACK_COLORS[(props.name.charCodeAt(0) || 0) % FALLBACK_COLORS.length]
-);
+const palette = computed(() => FALLBACKS[(props.name.charCodeAt(0) || 0) % FALLBACKS.length]);
 const initial = computed(() => (props.name.trim().charAt(0) || '?').toUpperCase());
 const fontSize = computed(() => `${Math.round(props.size * 0.42)}px`);
 </script>
@@ -25,7 +27,7 @@ const fontSize = computed(() => `${Math.round(props.size * 0.42)}px`);
   <span
     v-else
     class="ks-avatar ks-avatar--fallback"
-    :style="{ width: `${size}px`, height: `${size}px`, background, fontSize }"
+    :style="{ width: `${size}px`, height: `${size}px`, background: palette.bg, color: palette.fg, fontSize }"
     aria-hidden="true"
   >
     {{ initial }}
@@ -42,7 +44,6 @@ const fontSize = computed(() => `${Math.round(props.size * 0.42)}px`);
   object-fit: cover;
 }
 .ks-avatar--fallback {
-  color: var(--ks-primary-ink);
   font-weight: 600;
   font-family: Sora, "PingFang SC", sans-serif;
 }

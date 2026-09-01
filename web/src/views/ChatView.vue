@@ -4,9 +4,11 @@ import { useRouter } from 'vue-router';
 import ConversationList from '../components/ConversationList.vue';
 import ChatWindow from '../components/ChatWindow.vue';
 import { fetchConversations } from '../api/conversations';
+import { useI18nStore } from '../i18n';
 import type { Conversation } from '../types';
 
 const router = useRouter();
+const i18n = useI18nStore();
 const conversations = ref<Conversation[]>([]);
 const selected = ref<Conversation | null>(null);
 const isMobile = ref(false);
@@ -36,10 +38,10 @@ function backToList(): void {
   <div class="chat-page">
     <aside class="chat-page__sidebar" :class="{ 'is-hidden-mobile': selected && isMobile }">
       <div class="chat-page__sidebar-head">
-        <button class="chat-page__home" type="button" aria-label="返回首页" @click="router.push('/')">
+        <button class="chat-page__home" type="button" :aria-label="i18n.t('chat.homeAria')" @click="router.push('/')">
           ←
         </button>
-        <h2 class="chat-page__title">会话</h2>
+        <h2 class="chat-page__title">{{ i18n.t('chat.title') }}</h2>
         <span class="chat-page__count">{{ conversations.length }}</span>
       </div>
       <ConversationList
@@ -55,7 +57,7 @@ function backToList(): void {
         type="button"
         @click="backToList"
       >
-        ← 返回列表
+        ← {{ i18n.t('chat.back') }}
       </button>
       <ChatWindow :conversation="selected" />
     </main>
@@ -64,8 +66,10 @@ function backToList(): void {
 
 <style scoped>
 .chat-page {
+  flex: 1;
   display: flex;
-  height: 100dvh;
+  min-height: 0;
+  height: calc(100dvh - 57px);
   background: var(--ks-bg-base);
 }
 .chat-page__sidebar {
@@ -94,7 +98,7 @@ function backToList(): void {
   cursor: pointer;
 }
 .chat-page__home:hover {
-  background: var(--ks-bg-elevated);
+  background: var(--ks-bg-muted);
 }
 .chat-page__title {
   font-size: 20px;
@@ -106,6 +110,9 @@ function backToList(): void {
   font-size: 12px;
   line-height: 18px;
   color: var(--ks-text-tertiary);
+  background: var(--ks-bg-muted);
+  border-radius: 999px;
+  padding: 2px 10px;
 }
 .chat-page__main {
   flex: 1;
@@ -120,7 +127,7 @@ function backToList(): void {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: var(--ks-primary);
+  color: var(--ks-primary-text);
   font-size: 14px;
   cursor: pointer;
 }

@@ -23,10 +23,17 @@ async function mountAt(path: string) {
 }
 
 describe('App', () => {
+  it('shows the global header with brand and language switcher', async () => {
+    const wrapper = await mountAt('/');
+
+    expect(wrapper.text()).toContain('KiliSocial');
+    expect(wrapper.findAll('.lang-switch__option').length).toBe(3);
+  });
+
   it('shows the tabbar on editor and drafts', async () => {
     for (const path of ['/editor', '/drafts']) {
       const wrapper = await mountAt(path);
-      expect(wrapper.text()).toContain('草稿箱');
+      expect(wrapper.text()).toContain('Drafts');
     }
   });
 

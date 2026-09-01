@@ -28,7 +28,7 @@ describe('DraftsView', () => {
 
     expect(wrapper.text()).toContain('hello draft');
 
-    await wrapper.findAll('button').filter((b) => b.text().includes('删除')).at(0)!.trigger('click');
+    await wrapper.findAll('button').filter((b) => b.text().includes('Delete')).at(0)!.trigger('click');
     await new Promise((resolve) => setTimeout(resolve, 0));
     await wrapper.vm.$nextTick();
 

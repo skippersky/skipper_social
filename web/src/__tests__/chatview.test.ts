@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
+import { createPinia } from 'pinia';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import ChatView from '../views/ChatView.vue';
 
@@ -14,7 +15,7 @@ async function mountChat() {
   });
   await router.push('/chat');
   await router.isReady();
-  const wrapper = mount(ChatView, { global: { plugins: [router] } });
+  const wrapper = mount(ChatView, { global: { plugins: [createPinia(), router] } });
   await flushPromises();
   return wrapper;
 }
@@ -26,7 +27,7 @@ describe('ChatView', () => {
     const wrapper = await mountChat();
 
     expect(wrapper.findAll('.conv-item').length).toBeGreaterThanOrEqual(3);
-    expect(wrapper.text()).toContain('选择一个对话开始聊天');
+    expect(wrapper.text()).toContain('Select a conversation to start chatting');
   });
 
   it('selecting a conversation opens the chat window', async () => {
