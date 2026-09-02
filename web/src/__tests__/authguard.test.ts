@@ -28,6 +28,13 @@ describe('route guard', () => {
     expect(router.currentRoute.value.path).toBe('/register');
   });
 
+  it('keeps landing pages public for anonymous visitors', async () => {
+    await router.push('/pricing');
+    await router.isReady();
+
+    expect(router.currentRoute.value.path).toBe('/pricing');
+  });
+
   it('sends signed-in visitors away from the login page', async () => {
     await useAuthStore().login(DEMO_CREDENTIALS);
 

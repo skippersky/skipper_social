@@ -111,7 +111,7 @@ function backToList(): void {
   <div class="chat-page">
     <aside class="chat-page__sidebar" :class="{ 'is-hidden-mobile': selected && isMobile }">
       <div class="chat-page__sidebar-head">
-        <button class="chat-page__home" type="button" :aria-label="i18n.t('chat.homeAria')" @click="router.push('/')">
+        <button class="chat-page__home" type="button" :aria-label="i18n.t('chat.homeAria')" @click="router.push('/home')">
           ←
         </button>
         <h2 class="chat-page__title">{{ i18n.t('chat.title') }}</h2>

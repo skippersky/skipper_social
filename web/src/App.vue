@@ -4,18 +4,23 @@ import { useRoute } from 'vue-router';
 import LanguageSwitcher from './components/LanguageSwitcher.vue';
 import UserMenu from './components/UserMenu.vue';
 import { useI18nStore } from './i18n';
+import { useAuthStore } from './stores/auth';
 
 const route = useRoute();
 const i18n = useI18nStore();
+const auth = useAuthStore();
 const showTabbar = computed(() => ['/editor', '/drafts'].includes(route.path));
+// Landing pages ship their own header/footer chrome.
+const LANDING_PATHS = ['/', '/pricing', '/privacy', '/terms'];
+const showChrome = computed(() => !LANDING_PATHS.includes(route.path));
 </script>
 
 <template>
   <div class="app-shell" :class="{ 'app-shell--has-tabbar': showTabbar }">
-    <header class="app-header">
+    <header v-if="showChrome" class="app-header">
       <div class="app-header__brandline" aria-hidden="true"></div>
       <div class="app-header__inner">
-        <router-link to="/" class="app-header__brand">
+        <router-link :to="auth.isAuthenticated ? '/home' : '/'" class="app-header__brand">
           <span class="app-header__logo" aria-hidden="true">K</span>
           <span class="app-header__name">KiliSocial</span>
         </router-link>

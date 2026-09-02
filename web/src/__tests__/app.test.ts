@@ -12,6 +12,7 @@ async function mountAt(path: string) {
     history: createMemoryHistory(),
     routes: [
       { path: '/', component: stub },
+      { path: '/home', component: stub },
       { path: '/editor', component: stub },
       { path: '/drafts', component: stub },
       { path: '/chat', component: stub },
@@ -26,11 +27,17 @@ async function mountAt(path: string) {
 }
 
 describe('App', () => {
-  it('shows the global header with brand and language switcher', async () => {
-    const wrapper = await mountAt('/');
+  it('shows the global header with brand and language switcher on workspace pages', async () => {
+    const wrapper = await mountAt('/home');
 
     expect(wrapper.text()).toContain('KiliSocial');
     expect(wrapper.findAll('.lang-switch__option').length).toBe(3);
+  });
+
+  it('hides the global header on landing pages', async () => {
+    const wrapper = await mountAt('/');
+
+    expect(wrapper.find('.app-header').exists()).toBe(false);
   });
 
   it('shows the tabbar on editor and drafts', async () => {
@@ -41,7 +48,7 @@ describe('App', () => {
   });
 
   it('hides the tabbar on home and chat', async () => {
-    for (const path of ['/', '/chat']) {
+    for (const path of ['/home', '/chat']) {
       const wrapper = await mountAt(path);
       expect(wrapper.find('.van-tabbar').exists()).toBe(false);
     }

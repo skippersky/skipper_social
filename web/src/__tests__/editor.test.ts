@@ -16,7 +16,8 @@ function makeRouter() {
     routes: [
       { path: '/', component: { template: '<div />' } },
       { path: '/editor', component: EditorView },
-      { path: '/drafts', component: { template: '<div />' } }
+      { path: '/drafts', component: { template: '<div />' } },
+      { path: '/home', component: { template: '<div />' } }
     ]
   });
 }
@@ -79,6 +80,6 @@ describe('EditorView', () => {
     await wrapper.find('.page__home').trigger('click');
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(router.currentRoute.value.path).toBe('/');
+    expect(router.currentRoute.value.path).toBe('/home');
   });
 });

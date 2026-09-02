@@ -40,7 +40,7 @@ describe('DraftsView', () => {
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
-        { path: '/', component: { template: '<div />' } },
+        { path: '/home', component: { template: '<div />' } },
         { path: '/drafts', component: DraftsView }
       ]
     });
@@ -53,6 +53,6 @@ describe('DraftsView', () => {
     await wrapper.find('.page__home').trigger('click');
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(router.currentRoute.value.path).toBe('/');
+    expect(router.currentRoute.value.path).toBe('/home');
   });
 });

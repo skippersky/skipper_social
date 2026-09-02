@@ -4,18 +4,42 @@ import DraftsView from '../views/DraftsView.vue';
 import EditorView from '../views/EditorView.vue';
 import ForgotPasswordView from '../views/ForgotPasswordView.vue';
 import HomeView from '../views/HomeView.vue';
+import LandingLayout from '../layouts/LandingLayout.vue';
+import LandingIndex from '../views/landing/index.vue';
+import LandingPricing from '../views/landing/pricing.vue';
+import LandingPrivacy from '../views/landing/privacy.vue';
+import LandingTerms from '../views/landing/terms.vue';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import SettingsProfileView from '../views/SettingsProfileView.vue';
 import SettingsSecurityView from '../views/SettingsSecurityView.vue';
 import { useAuthStore } from '../stores/auth';
 
-const PUBLIC_PATHS = new Set(['/', '/login', '/register', '/forgot-password']);
+const PUBLIC_PATHS = new Set([
+  '/',
+  '/home',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/pricing',
+  '/privacy',
+  '/terms'
+]);
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'home', component: HomeView },
+    {
+      path: '/',
+      component: LandingLayout,
+      children: [
+        { path: '', name: 'landing', component: LandingIndex },
+        { path: 'pricing', name: 'pricing', component: LandingPricing },
+        { path: 'privacy', name: 'privacy', component: LandingPrivacy },
+        { path: 'terms', name: 'terms', component: LandingTerms }
+      ]
+    },
+    { path: '/home', name: 'home', component: HomeView },
     { path: '/editor', name: 'editor', component: EditorView },
     { path: '/drafts', name: 'drafts', component: DraftsView },
     { path: '/chat', name: 'chat', component: ChatView },

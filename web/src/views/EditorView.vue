@@ -73,7 +73,7 @@ async function onSave(): Promise<void> {
 <template>
   <div class="page">
     <header class="page__head">
-      <button class="page__home" type="button" :aria-label="i18n.t('common.backHome')" @click="router.push('/')">←</button>
+      <button class="page__home" type="button" :aria-label="i18n.t('common.backHome')" @click="router.push('/home')">←</button>
       <h2 class="page__title">{{ i18n.t('editor.title') }}</h2>
     </header>
     <div class="workspace">
