@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { apiErrorI18nKey, apiGet, ApiError, apiPost, onUnauthorized, REQUEST_TIMEOUT_MS } from '../api/http';
+import { apiDelete, apiErrorI18nKey, apiGet, ApiError, apiPost, onUnauthorized, REQUEST_TIMEOUT_MS } from '../api/http';
 
 function stubFetch(payload: unknown, ok = true, status = 200) {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -84,6 +84,22 @@ describe('apiGet', () => {
     await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS + 10);
     await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS + 10);
     await assertion;
+  });
+});
+
+describe('apiDelete', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('sends a DELETE request and unwraps the envelope', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, code: 'OK', message: 'ok', data: 'gone' })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(apiDelete('/z')).resolves.toBe('gone');
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'DELETE' });
   });
 });
 

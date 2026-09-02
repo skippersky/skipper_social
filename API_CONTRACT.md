@@ -138,3 +138,64 @@ letter, one lower-case letter and one digit. Nickname: 2-20 characters.
 Public: `/`, `/login`, `/register`, `/forgot-password`. Everything else requires a
 session; anonymous visits redirect to `/login?redirect=<original path>`. Authenticated
 visits to `/login` or `/register` redirect to `/chat`.
+## Billing endpoints (Sprint 5 subscription module)
+
+### Plans
+
+- `GET /api/v1/plans` -> `Plan[]`
+- `GET /api/v1/plans/{id}` -> `Plan`
+
+Plan DTO:
+
+```json
+{
+  "id": "basic",
+  "name": "Basic",
+  "priceUsd": 9,
+  "quotas": { "aiGenerations": 500, "messages": 5000, "channels": 3, "scheduledPosts": 60 }
+}
+```
+
+`quotas.channels = -1` means unlimited.
+
+### Subscriptions
+
+- `POST /api/v1/subscriptions` body `{ "planId": "basic" }` -> `{ "checkoutUrl": "https://checkout.stripe.com/..." }`
+- `GET /api/v1/subscriptions/me` -> `Subscription`
+- `PUT /api/v1/subscriptions/{id}` body `{ "planId": "pro" }` -> `Subscription`
+- `DELETE /api/v1/subscriptions/{id}` -> `Subscription` (cancel at period end)
+- `POST /api/v1/subscriptions/{id}/resume` -> `Subscription`
+
+Subscription DTO:
+
+```json
+{
+  "id": "sub-1",
+  "planId": "basic",
+  "status": "active",
+  "currentPeriodEnd": 1767225600000,
+  "cancelAtPeriodEnd": false
+}
+```
+
+`status`: `active | trialing | canceled | past_due`.
+
+### Usage
+
+- `GET /api/v1/usage` -> `{ "aiGenerations": 25, "messages": 132, "scheduledPosts": 0, "periodEnd": 1767225600000 }`
+- `GET /api/v1/usage/history?period=14d` -> `[{ "date": "2026-09-01", "aiGenerations": 3, "messages": 12, "scheduledPosts": 1 }]`
+
+### Stripe
+
+Test mode only. Checkout is backend-driven: the client receives the Stripe
+Checkout Session URL and redirects. Webhook confirmation updates the
+subscription server-side; `/checkout/success` and `/checkout/cancel` are the
+client return URLs. `VITE_STRIPE_PUBLIC_KEY` is reserved for future Stripe
+Elements usage and must stay a `pk_test_` key until go-live.
+
+### Demo fallback
+
+Until these endpoints exist, the client degrades to an on-device demo
+directory (same policy as auth: network errors, timeouts and 404s only).
+The demo checkout page `/checkout/demo` simulates the Stripe test-mode
+cashier so the whole loop can be exercised offline.

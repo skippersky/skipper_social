@@ -28,16 +28,18 @@ async function mountPricing() {
     history: createMemoryHistory(),
     routes: [
       { path: '/pricing', component: LandingPricing },
-      { path: '/register', component: { template: '<div />' } }
+      { path: '/register', component: { template: '<div />' } },
+      { path: '/dashboard/subscription/upgrade', component: { template: '<div />' } }
     ]
   });
   await router.push('/pricing');
   await router.isReady();
-  return mount(LandingPricing, { global: { plugins: [pinia, router, Vant] } });
+  const wrapper = mount(LandingPricing, { global: { plugins: [pinia, router, Vant] } });
+  return { wrapper, router };
 }
 describe('Pricing page', () => {
   it('lists the three plans with monthly prices', async () => {
-    const wrapper = await mountPricing();
+    const { wrapper } = await mountPricing();
 
     expect(wrapper.findAll('.plan')).toHaveLength(3);
     expect(wrapper.text()).toContain('$0');
@@ -47,7 +49,7 @@ describe('Pricing page', () => {
   });
 
   it('points anonymous visitors to registration', async () => {
-    const wrapper = await mountPricing();
+    const { wrapper } = await mountPricing();
 
     const ctas = wrapper.findAll('a.plan__cta');
     expect(ctas).toHaveLength(3);
@@ -56,9 +58,9 @@ describe('Pricing page', () => {
     }
   });
 
-  it('marks the current plan and previews checkout for signed-in visitors', async () => {
+  it('marks the current plan and routes signed-in visitors to the upgrade flow', async () => {
     await useAuthStore().login(DEMO_CREDENTIALS);
-    const wrapper = await mountPricing();
+    const { wrapper, router } = await mountPricing();
 
     expect(wrapper.find('.plan--current').exists()).toBe(true);
     expect(wrapper.find('.plan__badge').text()).toBe('Current plan');
@@ -67,8 +69,9 @@ describe('Pricing page', () => {
     const upgrade = buttons.find((b) => b.text().includes('Upgrade'));
     expect(upgrade).toBeDefined();
     await upgrade!.trigger('click');
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(wrapper.find('.pricing-soon').text()).toContain('Subscription checkout arrives');
+    expect(router.currentRoute.value.path).toBe('/dashboard/subscription/upgrade');
     const current = buttons.find((b) => b.text().includes('Current plan'));
     expect((current!.element as HTMLButtonElement).disabled).toBe(true);
   });

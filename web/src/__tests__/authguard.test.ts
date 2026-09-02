@@ -28,6 +28,21 @@ describe('route guard', () => {
     expect(router.currentRoute.value.path).toBe('/register');
   });
 
+  it('protects the subscription dashboard for anonymous visitors', async () => {
+    await router.push('/dashboard/subscription');
+    await router.isReady();
+
+    expect(router.currentRoute.value.path).toBe('/login');
+    expect(router.currentRoute.value.query.redirect).toBe('/dashboard/subscription');
+  });
+
+  it('keeps checkout result pages public', async () => {
+    await router.push('/checkout/success');
+    await router.isReady();
+
+    expect(router.currentRoute.value.path).toBe('/checkout/success');
+  });
+
   it('keeps landing pages public for anonymous visitors', async () => {
     await router.push('/pricing');
     await router.isReady();

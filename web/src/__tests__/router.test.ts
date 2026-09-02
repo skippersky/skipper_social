@@ -18,7 +18,13 @@ describe('router', () => {
       '/register',
       '/forgot-password',
       '/settings/profile',
-      '/settings/security'
+      '/settings/security',
+      '/dashboard/subscription',
+      '/dashboard/subscription/upgrade',
+      '/dashboard/subscription/usage',
+      '/checkout/demo',
+      '/checkout/success',
+      '/checkout/cancel'
     ];
     for (const path of expected) {
       expect(paths).toContain(path);

@@ -149,3 +149,9 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
     return unwrap<T>(response);
   });
 }
+export async function apiDelete<T>(path: string): Promise<T> {
+  return withSessionRecovery(path, async () => {
+    const response = await fetchWithTimeout(`${apiBase()}${path}`, { method: 'DELETE' });
+    return unwrap<T>(response);
+  });
+}

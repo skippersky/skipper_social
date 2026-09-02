@@ -71,3 +71,53 @@ export interface OAuthRequest {
 export type UpdateMeRequest = Partial<
   Pick<User, 'nickname' | 'phone' | 'avatarUrl' | 'company' | 'timezone' | 'language'>
 >;
+/* Sprint 5 billing types (see API_CONTRACT.md). */
+export interface PlanQuotas {
+  aiGenerations: number;
+  messages: number;
+  /** Number of connected channels; -1 means unlimited. */
+  channels: number;
+  scheduledPosts: number;
+}
+
+export interface Plan {
+  id: SubscriptionTier;
+  name: string;
+  priceUsd: number;
+  quotas: PlanQuotas;
+  featured?: boolean;
+}
+
+export type SubscriptionStatus = 'active' | 'trialing' | 'canceled' | 'past_due';
+
+export interface Subscription {
+  id: string;
+  planId: SubscriptionTier;
+  status: SubscriptionStatus;
+  /** Epoch milliseconds of the next billing (or access end) date. */
+  currentPeriodEnd: number;
+  cancelAtPeriodEnd: boolean;
+  /** True when served by the on-device demo directory (backend billing absent). */
+  demo?: boolean;
+}
+
+export interface CheckoutSession {
+  checkoutUrl: string;
+  demo?: boolean;
+}
+
+export interface UsageSnapshot {
+  aiGenerations: number;
+  messages: number;
+  scheduledPosts: number;
+  periodEnd: number;
+  demo?: boolean;
+}
+
+export interface UsageRecord {
+  /** ISO day, YYYY-MM-DD. */
+  date: string;
+  aiGenerations: number;
+  messages: number;
+  scheduledPosts: number;
+}

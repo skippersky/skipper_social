@@ -13,6 +13,12 @@ import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import SettingsProfileView from '../views/SettingsProfileView.vue';
 import SettingsSecurityView from '../views/SettingsSecurityView.vue';
+import SubscriptionView from '../views/dashboard/subscription/index.vue';
+import SubscriptionUpgradeView from '../views/dashboard/subscription/upgrade.vue';
+import SubscriptionUsageView from '../views/dashboard/subscription/usage.vue';
+import CheckoutSuccessView from '../views/checkout/success.vue';
+import CheckoutCancelView from '../views/checkout/cancel.vue';
+import CheckoutDemoView from '../views/checkout/demo.vue';
 import { useAuthStore } from '../stores/auth';
 
 const PUBLIC_PATHS = new Set([
@@ -23,7 +29,9 @@ const PUBLIC_PATHS = new Set([
   '/forgot-password',
   '/pricing',
   '/privacy',
-  '/terms'
+  '/terms',
+  '/checkout/success',
+  '/checkout/cancel'
 ]);
 
 export const router = createRouter({
@@ -48,7 +56,13 @@ export const router = createRouter({
     { path: '/forgot-password', name: 'forgot-password', component: ForgotPasswordView },
     { path: '/settings', redirect: '/settings/profile' },
     { path: '/settings/profile', name: 'settings-profile', component: SettingsProfileView },
-    { path: '/settings/security', name: 'settings-security', component: SettingsSecurityView }
+    { path: '/settings/security', name: 'settings-security', component: SettingsSecurityView },
+    { path: '/dashboard/subscription', name: 'subscription', component: SubscriptionView },
+    { path: '/dashboard/subscription/upgrade', name: 'subscription-upgrade', component: SubscriptionUpgradeView },
+    { path: '/dashboard/subscription/usage', name: 'subscription-usage', component: SubscriptionUsageView },
+    { path: '/checkout/demo', name: 'checkout-demo', component: CheckoutDemoView },
+    { path: '/checkout/success', name: 'checkout-success', component: CheckoutSuccessView },
+    { path: '/checkout/cancel', name: 'checkout-cancel', component: CheckoutCancelView }
   ]
 });
 

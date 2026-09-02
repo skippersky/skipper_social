@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { usePageMeta } from '../../composables/usePageMeta';
 import { useI18nStore } from '../../i18n';
 import { useAuthStore } from '../../stores/auth';
@@ -27,10 +28,10 @@ const rows = computed(() => [
 ]);
 
 const currentTier = computed(() => auth.user?.subscriptionTier ?? null);
-const soonVisible = ref(false);
+const router = useRouter();
 
 function onChoose(): void {
-  soonVisible.value = true;
+  void router.push('/dashboard/subscription/upgrade');
 }
 </script>
 
@@ -71,9 +72,6 @@ function onChoose(): void {
         </button>
       </article>
     </div>
-    <p v-if="auth.isAuthenticated && soonVisible" class="pricing-soon" role="status">
-      {{ i18n.t('pricing.soon') }}
-    </p>
   </div>
 </template>
 <style scoped>
