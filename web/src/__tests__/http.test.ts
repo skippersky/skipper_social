@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { apiErrorI18nKey, apiGet, ApiError, apiPost, REQUEST_TIMEOUT_MS } from '../api/http';
+import { apiErrorI18nKey, apiGet, ApiError, apiPost, onUnauthorized, REQUEST_TIMEOUT_MS } from '../api/http';
 
 function stubFetch(payload: unknown, ok = true, status = 200) {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -96,5 +96,57 @@ describe('apiErrorI18nKey', () => {
     expect(apiErrorI18nKey(new ApiError('HTTP_500', 'x'))).toBe('api.500');
     expect(apiErrorI18nKey(new ApiError('HTTP_503', 'x'))).toBe('api.500');
     expect(apiErrorI18nKey(new Error('boom'))).toBe('api.network');
+  });
+});
+
+describe('session recovery on 401', () => {
+  afterEach(() => {
+    onUnauthorized(null);
+    vi.unstubAllGlobals();
+  });
+
+  function unauthorizedResponse() {
+    return {
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: async () => ({ success: false, code: 'UNAUTHORIZED', message: 'expired', data: null })
+    };
+  }
+
+  it('refreshes once and retries the original request', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(unauthorizedResponse())
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, code: 'OK', message: 'ok', data: 'fresh' })
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(apiGet('/private')).resolves.toBe('fresh');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/api/v1/auth/refresh');
+  });
+
+  it('invokes the unauthorized handler when the refresh fails', async () => {
+    const handler = vi.fn();
+    onUnauthorized(handler);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(unauthorizedResponse()));
+
+    await expect(apiGet('/private')).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not attempt refresh for auth endpoints', async () => {
+    const handler = vi.fn();
+    onUnauthorized(handler);
+    const fetchMock = vi.fn().mockResolvedValue(unauthorizedResponse());
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(apiPost('/api/v1/auth/login', {})).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledTimes(1);
   });
 });

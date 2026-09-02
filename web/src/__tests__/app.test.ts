@@ -14,7 +14,10 @@ async function mountAt(path: string) {
       { path: '/', component: stub },
       { path: '/editor', component: stub },
       { path: '/drafts', component: stub },
-      { path: '/chat', component: stub }
+      { path: '/chat', component: stub },
+      { path: '/login', component: stub },
+      { path: '/settings/profile', component: stub },
+      { path: '/settings/security', component: stub }
     ]
   });
   await router.push(path);

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import LanguageSwitcher from './components/LanguageSwitcher.vue';
+import UserMenu from './components/UserMenu.vue';
 import { useI18nStore } from './i18n';
 
 const route = useRoute();
@@ -18,7 +19,10 @@ const showTabbar = computed(() => ['/editor', '/drafts'].includes(route.path));
           <span class="app-header__logo" aria-hidden="true">K</span>
           <span class="app-header__name">KiliSocial</span>
         </router-link>
-        <LanguageSwitcher />
+        <div class="app-header__actions">
+          <LanguageSwitcher />
+          <UserMenu />
+        </div>
       </div>
     </header>
     <router-view />
@@ -59,6 +63,11 @@ const showTabbar = computed(() => ['/editor', '/drafts'].includes(route.path));
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .app-header__brand {
   display: inline-flex;

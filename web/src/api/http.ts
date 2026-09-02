@@ -19,6 +19,15 @@ export function apiBase(): string {
 
 export const REQUEST_TIMEOUT_MS = 10_000;
 
+const AUTH_PATH_PREFIX = '/api/v1/auth';
+
+let unauthorizedHandler: (() => void) | null = null;
+
+/** Registers a global handler invoked on unrecoverable 401s (e.g. clear session). */
+export function onUnauthorized(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
+}
+
 /** Maps an ApiError/HTTP status to an i18n key for user-friendly display. */
 export function apiErrorI18nKey(error: unknown): string {
   if (error instanceof ApiError) {
@@ -35,7 +44,7 @@ async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Respon
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await fetch(url, { credentials: 'include', ...init, signal: controller.signal });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new ApiError('TIMEOUT', 'request timed out');
@@ -61,23 +70,82 @@ function isRetriable(error: unknown): boolean {
   return true;
 }
 
-/** GET with one automatic retry on transient failures (network/timeout/5xx). */
-export async function apiGet<T>(path: string): Promise<T> {
+function isUnauthorized(error: unknown): boolean {
+  return error instanceof ApiError && (error.code === 'HTTP_401' || error.code === 'UNAUTHORIZED');
+}
+
+let refreshing: Promise<boolean> | null = null;
+
+/** Attempts a session refresh once; concurrent callers share the same probe. */
+function tryRefreshSession(): Promise<boolean> {
+  refreshing ??= (async () => {
+    try {
+      const response = await fetchWithTimeout(`${apiBase()}${AUTH_PATH_PREFIX}/refresh`, { method: 'POST' });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  })().finally(() => {
+    refreshing = null;
+  });
+  return refreshing;
+}
+
+/** On 401: refresh the session once and retry; otherwise surface the error. */
+async function withSessionRecovery<T>(path: string, attempt: () => Promise<T>): Promise<T> {
   try {
-    const response = await fetchWithTimeout(`${apiBase()}${path}`);
-    return await unwrap<T>(response);
+    return await attempt();
   } catch (error) {
-    if (!isRetriable(error)) throw error;
-    const response = await fetchWithTimeout(`${apiBase()}${path}`);
-    return unwrap<T>(response);
+    if (!isUnauthorized(error)) throw error;
+    if (path.startsWith(AUTH_PATH_PREFIX)) {
+      unauthorizedHandler?.();
+      throw error;
+    }
+    if (await tryRefreshSession()) {
+      try {
+        return await attempt();
+      } catch (retryError) {
+        if (isUnauthorized(retryError)) unauthorizedHandler?.();
+        throw retryError;
+      }
+    }
+    unauthorizedHandler?.();
+    throw error;
   }
 }
 
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetchWithTimeout(`${apiBase()}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+/** GET with one automatic retry on transient failures (network/timeout/5xx). */
+export async function apiGet<T>(path: string): Promise<T> {
+  return withSessionRecovery(path, async () => {
+    try {
+      const response = await fetchWithTimeout(`${apiBase()}${path}`);
+      return await unwrap<T>(response);
+    } catch (error) {
+      if (!isRetriable(error)) throw error;
+      const response = await fetchWithTimeout(`${apiBase()}${path}`);
+      return unwrap<T>(response);
+    }
   });
-  return unwrap<T>(response);
+}
+
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  return withSessionRecovery(path, async () => {
+    const response = await fetchWithTimeout(`${apiBase()}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    return unwrap<T>(response);
+  });
+}
+
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return withSessionRecovery(path, async () => {
+    const response = await fetchWithTimeout(`${apiBase()}${path}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    return unwrap<T>(response);
+  });
 }

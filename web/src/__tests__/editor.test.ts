@@ -5,6 +5,10 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import Vant from 'vant';
 import EditorView from '../views/EditorView.vue';
 import { useDraftsStore } from '../stores/drafts';
+vi.mock('vant', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('vant')>();
+  return { ...actual, showToast: vi.fn() };
+});
 
 function makeRouter() {
   return createRouter({

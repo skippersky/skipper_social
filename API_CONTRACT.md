@@ -85,3 +85,56 @@ UI 的发送输入框在该接口联调通过前保持禁用。
 | --- | --- | --- |
 | VITE_API_BASE | 空（同源） | API 前缀，仅跨域部署时需要配置 |
 | VITE_WS_URL | 同源 `/ws`（http→ws / https→wss） | WebSocket 地址，仅跨域部署时需要配置 |
+## Auth endpoints (Sprint 3 user module)
+
+### Session model
+
+- JWT is carried in an httpOnly cookie set by the backend (`Set-Cookie`); the client
+  never touches tokens directly. All requests use `credentials: include`.
+- `AuthResponse` DTO: `{ user, accessToken?, refreshToken?, demo? }` — tokens are
+  optional because the cookie flow may omit them.
+- Any 401 outside `/api/v1/auth/*` triggers one automatic `POST /api/v1/auth/refresh`
+  probe plus a single retry of the original request; if that still fails the client
+  clears the session and navigates to `/login`.
+- Demo mode: when auth endpoints answer 404 or the network is unreachable, the client
+  degrades to an on-device demo directory (localStorage, flagged with a Demo badge)
+  and switches to the real backend automatically once it ships. 401/400/5xx answers
+  never fall back to demo.
+
+### Endpoints
+
+| Method | Path | Body | Returns |
+| --- | --- | --- | --- |
+| POST | /api/v1/auth/login | `{ email, password }` | AuthResponse; 401 `UNAUTHORIZED` on bad credentials, `NOT_ACTIVATED` when disabled |
+| POST | /api/v1/auth/register | `{ email, password, nickname, phone? }` | AuthResponse; `EMAIL_EXISTS` on duplicates |
+| POST | /api/v1/auth/oauth/google | `{ provider: 'google', token }` | AuthResponse |
+| POST | /api/v1/auth/refresh | `{}` | 200 rotates the session cookie |
+| POST | /api/v1/auth/logout | `{}` | clears the cookie |
+| GET | /api/v1/auth/me | - | User |
+| PUT | /api/v1/auth/me | UpdateMeRequest | User |
+| POST | /api/v1/auth/forgot-password | `{ email }` | always succeeds (no email enumeration) |
+| POST | /api/v1/auth/change-password | `{ oldPassword, newPassword }` | `WRONG_PASSWORD` when the current password is wrong |
+
+Password policy (client + server): minimum 8 characters with at least one upper-case
+letter, one lower-case letter and one digit. Nickname: 2-20 characters.
+
+### User DTO
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| id | string | user id |
+| email | string | login identifier |
+| phone | string? | optional |
+| nickname | string | 2-20 chars |
+| avatarUrl | string? | URL for now; file upload later |
+| company | string? | optional |
+| timezone | string | IANA name, e.g. Africa/Dar_es_Salaam |
+| language | string | en / sw / zh / fr |
+| subscriptionTier | 'free' \| 'basic' \| 'pro' | entitlements land in Sprint 5 |
+| createdAt | number | epoch ms |
+
+### Route guard
+
+Public: `/`, `/login`, `/register`, `/forgot-password`. Everything else requires a
+session; anonymous visits redirect to `/login?redirect=<original path>`. Authenticated
+visits to `/login` or `/register` redirect to `/chat`.
