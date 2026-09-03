@@ -24,7 +24,10 @@ describe('router', () => {
       '/dashboard/subscription/usage',
       '/checkout/demo',
       '/checkout/success',
-      '/checkout/cancel'
+      '/checkout/cancel',
+      '/dashboard/channels',
+      '/dashboard/channels/connect/:platform',
+      '/auth/callback/:platform'
     ];
     for (const path of expected) {
       expect(paths).toContain(path);

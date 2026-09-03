@@ -19,6 +19,9 @@ import SubscriptionUsageView from '../views/dashboard/subscription/usage.vue';
 import CheckoutSuccessView from '../views/checkout/success.vue';
 import CheckoutCancelView from '../views/checkout/cancel.vue';
 import CheckoutDemoView from '../views/checkout/demo.vue';
+import ChannelsView from '../views/dashboard/channels/index.vue';
+import ChannelConnectView from '../views/dashboard/channels/connect.vue';
+import AuthCallbackView from '../views/auth/callback.vue';
 import { useAuthStore } from '../stores/auth';
 
 const PUBLIC_PATHS = new Set([
@@ -31,7 +34,11 @@ const PUBLIC_PATHS = new Set([
   '/privacy',
   '/terms',
   '/checkout/success',
-  '/checkout/cancel'
+  '/checkout/cancel',
+  '/auth/callback/whatsapp',
+  '/auth/callback/facebook',
+  '/auth/callback/instagram',
+  '/auth/callback/tiktok'
 ]);
 
 export const router = createRouter({
@@ -62,7 +69,10 @@ export const router = createRouter({
     { path: '/dashboard/subscription/usage', name: 'subscription-usage', component: SubscriptionUsageView },
     { path: '/checkout/demo', name: 'checkout-demo', component: CheckoutDemoView },
     { path: '/checkout/success', name: 'checkout-success', component: CheckoutSuccessView },
-    { path: '/checkout/cancel', name: 'checkout-cancel', component: CheckoutCancelView }
+    { path: '/checkout/cancel', name: 'checkout-cancel', component: CheckoutCancelView },
+    { path: '/dashboard/channels', name: 'channels', component: ChannelsView },
+    { path: '/dashboard/channels/connect/:platform', name: 'channel-connect', component: ChannelConnectView },
+    { path: '/auth/callback/:platform', name: 'auth-callback', component: AuthCallbackView }
   ]
 });
 

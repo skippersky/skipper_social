@@ -1,5 +1,17 @@
 import { ApiError } from './http';
-import type { Plan, Subscription, SubscriptionTier, UsageRecord, UsageSnapshot } from '../types';
+import type {
+  Channel,
+  ChannelPlatform,
+  ConnectResult,
+  OAuthCallbackParams,
+  Plan,
+  Subscription,
+  SubscriptionTier,
+  TokenResult,
+  UsageRecord,
+  UsageSnapshot,
+  WebhookStatus
+} from '../types';
 
 const MODE_KEY = 'ks-demo-mode';
 const SUB_KEY = 'ks-demo-subscription';
@@ -181,4 +193,126 @@ export function demoUsageHistory(planId: SubscriptionTier): UsageRecord[] {
     });
   }
   return records;
+}
+/* Sprint 5b: demo channel directory (OAuth loop simulated in-app). */
+const CHANNELS_KEY = 'ks-demo-channels';
+const WEBHOOKS_KEY = 'ks-demo-webhooks';
+const CHANNEL_PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
+
+const DEMO_ACCOUNT_NAMES: Record<ChannelPlatform, string> = {
+  whatsapp: '+255 700 100 200',
+  facebook: 'Kili Demo Shop',
+  instagram: '@kili.demo',
+  tiktok: '@kilisocial_demo'
+};
+
+interface DemoChannelRecord {
+  id: string;
+  platform: ChannelPlatform;
+  accountName: string;
+  status: 'connected' | 'needs_reauth';
+  connectedAt: number;
+  tokenExpiresAt: number;
+}
+
+function readChannelRecords(): DemoChannelRecord[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CHANNELS_KEY) ?? '[]') as DemoChannelRecord[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeChannelRecords(records: DemoChannelRecord[]): void {
+  try {
+    localStorage.setItem(CHANNELS_KEY, JSON.stringify(records));
+  } catch {
+    /* private mode */
+  }
+}
+
+function toChannel(record: DemoChannelRecord): Channel {
+  const expired = record.tokenExpiresAt < Date.now();
+  return {
+    id: record.id,
+    platform: record.platform,
+    accountName: record.accountName,
+    status: record.status === 'connected' && expired ? 'needs_reauth' : record.status,
+    connectedAt: record.connectedAt,
+    tokenExpiresAt: record.tokenExpiresAt,
+    demo: true
+  };
+}
+
+export function demoChannels(): Channel[] {
+  enterDemoMode();
+  return readChannelRecords().map(toChannel);
+}
+
+export function demoChannelById(id: string): Channel | null {
+  enterDemoMode();
+  const record = readChannelRecords().find((r) => r.id === id);
+  return record ? toChannel(record) : null;
+}
+/** Without a code this starts the demo OAuth loop; with a code it finalizes it. */
+export function demoConnect(platform: ChannelPlatform, params: OAuthCallbackParams): ConnectResult {
+  enterDemoMode();
+  if (params.code) {
+    const record: DemoChannelRecord = {
+      id: `demo-${platform}`,
+      platform,
+      accountName: DEMO_ACCOUNT_NAMES[platform],
+      status: 'connected',
+      connectedAt: Date.now(),
+      tokenExpiresAt: Date.now() + CHANNEL_PERIOD_MS
+    };
+    writeChannelRecords([...readChannelRecords().filter((r) => r.id !== record.id), record]);
+    return { channel: toChannel(record) };
+  }
+  return { authUrl: `/auth/callback/${platform}?code=demo-code&state=demo-state` };
+}
+
+export function demoDisconnect(id: string): void {
+  enterDemoMode();
+  writeChannelRecords(readChannelRecords().filter((r) => r.id !== id));
+}
+
+export function demoRefreshToken(id: string): TokenResult {
+  enterDemoMode();
+  const records = readChannelRecords();
+  const record = records.find((r) => r.id === id);
+  if (!record) throw new ApiError('NOT_FOUND', 'channel not found');
+  record.status = 'connected';
+  record.tokenExpiresAt = Date.now() + CHANNEL_PERIOD_MS;
+  writeChannelRecords(records);
+  return { channelId: id, tokenExpiresAt: record.tokenExpiresAt };
+}
+
+function readWebhooks(): Partial<Record<ChannelPlatform, WebhookStatus>> {
+  try {
+    return JSON.parse(localStorage.getItem(WEBHOOKS_KEY) ?? '{}') as Partial<
+      Record<ChannelPlatform, WebhookStatus>
+    >;
+  } catch {
+    return {};
+  }
+}
+
+export function demoWebhookStatus(platform: ChannelPlatform): WebhookStatus {
+  enterDemoMode();
+  return readWebhooks()[platform] ?? { platform, registered: false };
+}
+
+export function demoRegisterWebhook(platform: ChannelPlatform, url: string): WebhookStatus {
+  enterDemoMode();
+  const webhooks = readWebhooks();
+  const status: WebhookStatus = { platform, registered: true, url, updatedAt: Date.now() };
+  webhooks[platform] = status;
+  try {
+    localStorage.setItem(WEBHOOKS_KEY, JSON.stringify(webhooks));
+  } catch {
+    /* private mode */
+  }
+  return status;
 }

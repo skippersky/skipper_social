@@ -36,6 +36,20 @@ describe('route guard', () => {
     expect(router.currentRoute.value.query.redirect).toBe('/dashboard/subscription');
   });
 
+  it('protects the channel dashboard for anonymous visitors', async () => {
+    await router.push('/dashboard/channels');
+    await router.isReady();
+
+    expect(router.currentRoute.value.path).toBe('/login');
+  });
+
+  it('keeps oauth callback routes public', async () => {
+    await router.push('/auth/callback/whatsapp');
+    await router.isReady();
+
+    expect(router.currentRoute.value.path).toBe('/auth/callback/whatsapp');
+  });
+
   it('keeps checkout result pages public', async () => {
     await router.push('/checkout/success');
     await router.isReady();

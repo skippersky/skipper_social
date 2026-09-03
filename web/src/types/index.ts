@@ -121,3 +121,47 @@ export interface UsageRecord {
   messages: number;
   scheduledPosts: number;
 }
+/* Sprint 5b channel connection types (see API_CONTRACT.md). */
+export type ChannelPlatform = 'whatsapp' | 'facebook' | 'instagram' | 'tiktok';
+export type ChannelStatus = 'connected' | 'needs_reauth' | 'disconnected';
+
+export const CHANNEL_PLATFORMS: ChannelPlatform[] = ['whatsapp', 'facebook', 'instagram', 'tiktok'];
+
+export interface Channel {
+  id: string;
+  platform: ChannelPlatform;
+  accountName: string;
+  status: ChannelStatus;
+  connectedAt: number;
+  tokenExpiresAt: number;
+  demo?: boolean;
+}
+
+export interface AuthResult {
+  /** Platform OAuth consent URL, or the in-app demo callback offline. */
+  authUrl: string;
+  demo?: boolean;
+}
+
+export interface TokenResult {
+  channelId: string;
+  tokenExpiresAt: number;
+}
+
+export interface OAuthCallbackParams {
+  code?: string;
+  state?: string;
+  error?: string;
+}
+
+export interface ConnectResult {
+  authUrl?: string;
+  channel?: Channel;
+}
+
+export interface WebhookStatus {
+  platform: ChannelPlatform;
+  registered: boolean;
+  url?: string;
+  updatedAt?: number;
+}
