@@ -60,6 +60,11 @@ const i18n = useI18nStore();
         <span class="feature__title">{{ i18n.t('home.entryDraftsTitle') }}</span>
         <span class="feature__desc">{{ i18n.t('home.entryDraftsDesc') }}</span>
       </router-link>
+      <router-link class="feature" to="/dashboard/channels">
+        <span class="feature__icon feature__icon--node" aria-hidden="true"></span>
+        <span class="feature__title">{{ i18n.t('home.entryChannelsTitle') }}</span>
+        <span class="feature__desc">{{ i18n.t('home.entryChannelsDesc') }}</span>
+      </router-link>
     </section>
 
     <p class="home__notice">{{ i18n.t('home.notice') }}</p>
@@ -234,7 +239,7 @@ const i18n = useI18nStore();
   margin: 0 auto;
   padding: 40px 24px 8px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
 }
 .feature {
@@ -283,6 +288,12 @@ const i18n = useI18nStore();
   clip-path: polygon(0 0, 70% 0, 100% 30%, 100% 100%, 0 100%);
   border-radius: 0;
 }
+.feature__icon--node::after {
+  inset: 13px;
+  background: var(--ks-success);
+  border-radius: 50%;
+  box-shadow: 9px -9px 0 -4px var(--ks-accent), -9px 9px 0 -4px var(--ks-primary);
+}
 .feature__title {
   font-family: Sora, "PingFang SC", sans-serif;
   font-size: 17px;
@@ -311,10 +322,13 @@ const i18n = useI18nStore();
     gap: 36px;
   }
   .home__features {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 @media (max-width: 767px) {
+  .home__features {
+    grid-template-columns: 1fr;
+  }
   .home__title {
     font-size: 26px;
     line-height: 32px;

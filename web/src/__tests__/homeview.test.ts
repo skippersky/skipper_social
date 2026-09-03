@@ -12,7 +12,8 @@ async function mountHome() {
       { path: '/', component: HomeView },
       { path: '/chat', component: { template: '<div />' } },
       { path: '/editor', component: { template: '<div />' } },
-      { path: '/drafts', component: { template: '<div />' } }
+      { path: '/drafts', component: { template: '<div />' } },
+      { path: '/dashboard/channels', component: { template: '<div />' } }
     ]
   });
   await router.push('/');
@@ -28,15 +29,17 @@ describe('HomeView', () => {
     expect(wrapper.text()).toContain('Open conversations');
     expect(wrapper.text()).toContain('AI Copywriting');
     expect(wrapper.text()).toContain('Drafts');
+    expect(wrapper.text()).toContain('Channels');
     expect(wrapper.text()).toContain('under review');
   });
 
-  it('links to chat, editor and drafts routes', async () => {
+  it('links to chat, editor, drafts and channels routes', async () => {
     const wrapper = await mountHome();
     const hrefs = wrapper.findAll('a').map((a) => a.attributes('href'));
 
     expect(hrefs).toContain('/chat');
     expect(hrefs).toContain('/editor');
     expect(hrefs).toContain('/drafts');
+    expect(hrefs).toContain('/dashboard/channels');
   });
 });

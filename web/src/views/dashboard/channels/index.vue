@@ -117,7 +117,7 @@ async function onRefreshAll(): Promise<void> {
 </template>
 <style scoped>
 .channels-page {
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 24px 20px 72px;
   display: flex;
@@ -204,13 +204,16 @@ async function onRefreshAll(): Promise<void> {
   cursor: default;
 }
 .channels-page__list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 @media (max-width: 767px) {
   .channels-page {
     padding: 16px 16px 64px;
+  }
+  .channels-page__list {
+    grid-template-columns: 1fr;
   }
   .channels-page__overview {
     flex-direction: column;
