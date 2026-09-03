@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { showToast } from 'vant';
 import ChannelCard from '../../../components/channel/ChannelCard.vue';
 import ConnectLimitWarning from '../../../components/channel/ConnectLimitWarning.vue';
+import CredentialFormDialog from '../../../components/channel/CredentialFormDialog.vue';
 import PlatformSelector from '../../../components/channel/PlatformSelector.vue';
 import { usePageMeta } from '../../../composables/usePageMeta';
 import { channelBus } from '../../../events/channel';
@@ -13,6 +14,7 @@ import { useSubscriptionStore } from '../../../stores/subscription';
 import { CHANNEL_PLATFORMS, type ChannelPlatform } from '../../../types';
 
 const router = useRouter();
+const route = useRoute();
 const i18n = useI18nStore();
 const store = useChannelStore();
 const sub = useSubscriptionStore();
@@ -20,6 +22,29 @@ const sub = useSubscriptionStore();
 usePageMeta(i18n.t('channels.metaTitle'), i18n.t('channels.metaDescription'));
 
 const selectorVisible = ref(false);
+
+// Onboarding banner shown right after registration (query first_login=true).
+const FIRST_LOGIN_KEY = 'ks-first-login-dismissed';
+const firstLoginDismissed = ref(false);
+try {
+  firstLoginDismissed.value = localStorage.getItem(FIRST_LOGIN_KEY) === '1';
+} catch {
+  /* private mode */
+}
+const showWelcome = computed(() => route.query.first_login === 'true' && !firstLoginDismissed.value);
+
+function dismissWelcome(): void {
+  firstLoginDismissed.value = true;
+  try {
+    localStorage.setItem(FIRST_LOGIN_KEY, '1');
+  } catch {
+    /* private mode */
+  }
+}
+
+// Manual credential dialog state.
+const credentialShow = ref(false);
+const credentialPlatform = ref<ChannelPlatform | null>(null);
 
 const quota = computed(() => sub.currentPlan?.quotas.channels ?? 1);
 const limitLabel = computed(() =>
@@ -40,12 +65,44 @@ const offBus = channelBus.on(() => {
 onUnmounted(() => offBus());
 
 function onConnectExisting(platform: ChannelPlatform): void {
-  void router.push(`/dashboard/channels/connect/${platform}`);
+  credentialPlatform.value = platform;
+  credentialShow.value = true;
 }
 
 function onSelectPlatform(platform: ChannelPlatform): void {
   selectorVisible.value = false;
-  void router.push(`/dashboard/channels/connect/${platform}`);
+  credentialPlatform.value = platform;
+  credentialShow.value = true;
+}
+
+async function startConnection(
+  platform: ChannelPlatform,
+  credentials?: Record<string, string>
+): Promise<void> {
+  const result = await store.connect(platform, credentials);
+  if (!result) {
+    if (store.error) showToast(i18n.t(store.error));
+    return;
+  }
+  if (result.channel) {
+    showToast(i18n.t('channels.connectedToast', { platform: i18n.t(`channels.platform.${platform}`) }));
+    return;
+  }
+  if (!result.authUrl) return;
+  if (result.authUrl.startsWith('/')) await router.push(result.authUrl);
+  else window.location.assign(result.authUrl);
+}
+
+async function onCredentialSubmit(credentials: Record<string, string>): Promise<void> {
+  const platform = credentialPlatform.value;
+  credentialShow.value = false;
+  if (platform) await startConnection(platform, credentials);
+}
+
+async function onCredentialOAuth(): Promise<void> {
+  const platform = credentialPlatform.value;
+  credentialShow.value = false;
+  if (platform) await startConnection(platform);
 }
 
 async function onDisconnect(channelId: string): Promise<void> {
@@ -76,6 +133,18 @@ async function onRefreshAll(): Promise<void> {
       >←</button>
       <h1 class="channels-page__title">{{ i18n.t('channels.title') }}</h1>
     </header>
+
+    <div v-if="showWelcome" class="channels-page__welcome" role="status">
+      <p class="channels-page__welcome-text">{{ i18n.t('channels.welcome') }}</p>
+      <button
+        class="channels-page__welcome-close"
+        type="button"
+        :aria-label="i18n.t('channels.welcomeDismiss')"
+        @click="dismissWelcome"
+      >
+        ×
+      </button>
+    </div>
 
     <section class="channels-page__overview">
       <p class="channels-page__count">
@@ -113,6 +182,13 @@ async function onRefreshAll(): Promise<void> {
     </div>
 
     <PlatformSelector v-model:show="selectorVisible" @select="onSelectPlatform" />
+
+    <CredentialFormDialog
+      v-model:show="credentialShow"
+      :platform="credentialPlatform"
+      @submit="onCredentialSubmit"
+      @oauth="onCredentialOAuth"
+    />
   </section>
 </template>
 <style scoped>
@@ -207,6 +283,37 @@ async function onRefreshAll(): Promise<void> {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+}
+.channels-page__welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(244, 99, 58, 0.25);
+  background: var(--ks-grad-soft);
+}
+.channels-page__welcome-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--ks-primary-text);
+}
+.channels-page__welcome-close {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ks-primary-text);
+  font-size: 16px;
+  cursor: pointer;
+}
+.channels-page__welcome-close:hover {
+  background: rgba(244, 99, 58, 0.1);
 }
 @media (max-width: 767px) {
   .channels-page {

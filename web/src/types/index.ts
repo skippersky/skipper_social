@@ -141,6 +141,8 @@ export interface AuthResult {
   /** Platform OAuth consent URL, or the in-app demo callback offline. */
   authUrl: string;
   demo?: boolean;
+  /** Present when manual credentials were accepted without a redirect. */
+  channel?: Channel;
 }
 
 export interface TokenResult {
@@ -152,6 +154,8 @@ export interface OAuthCallbackParams {
   code?: string;
   state?: string;
   error?: string;
+  /** Manual credential mode: values keyed by CredentialField.key. */
+  credentials?: Record<string, string>;
 }
 
 export interface ConnectResult {

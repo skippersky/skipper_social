@@ -55,8 +55,11 @@ async function onSubmit(): Promise<void> {
       nickname: nickname.value.trim(),
       phone: phone.value.trim() || undefined
     });
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/chat';
-    await router.push(redirect);
+    if (typeof route.query.redirect === 'string') {
+      await router.push(route.query.redirect);
+    } else {
+      await router.push({ path: '/dashboard/channels', query: { first_login: 'true' } });
+    }
   } catch (error) {
     submitError.value = i18n.t(errorKey(error));
   } finally {

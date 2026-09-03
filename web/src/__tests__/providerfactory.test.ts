@@ -24,6 +24,7 @@ describe('ChannelProviderFactory', () => {
   it('supports registering custom providers', () => {
     const custom: ChannelProvider = {
       platform: 'whatsapp',
+      getRequiredCredentials: () => [],
       connect: async () => ({ authUrl: 'https://custom.example' }),
       disconnect: async () => undefined,
       refreshToken: async (id) => ({ channelId: id, tokenExpiresAt: 1 }),

@@ -32,7 +32,8 @@ describe('channel store', () => {
     const events: ChannelEvent[] = [];
     channelBus.on((event) => events.push(event));
 
-    await expect(store.connect('whatsapp')).resolves.toContain('/auth/callback/whatsapp');
+    const result = await store.connect('whatsapp');
+    expect(result?.authUrl).toContain('/auth/callback/whatsapp');
 
     const channel = await store.completeConnect('whatsapp', { code: 'demo' });
     expect(channel?.status).toBe('connected');
@@ -41,6 +42,20 @@ describe('channel store', () => {
     expect(store.connectedCount).toBe(1);
     expect(events.map((e) => e.type)).toContain(CHANNEL_CONNECTED);
   });
+  it('accepts manual credentials through the demo loop', async () => {
+    const store = useChannelStore();
+
+    const result = await store.connect('facebook', {
+      page_id: 'p-1',
+      page_access_token: 't-1'
+    });
+    expect(result?.authUrl).toContain('/auth/callback/facebook');
+
+    const channel = await store.completeConnect('facebook', { code: 'demo' });
+    expect(channel?.status).toBe('connected');
+    expect(store.isChannelConnected('facebook')).toBe(true);
+  });
+
   it('disconnects channels and frees the slot', async () => {
     const store = useChannelStore();
     const events: ChannelEvent[] = [];

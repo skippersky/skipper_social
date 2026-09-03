@@ -9,7 +9,8 @@ async function mountRegister() {
     history: createMemoryHistory(),
     routes: [
       { path: '/register', component: RegisterView },
-      { path: '/chat', component: { template: '<div />' } }
+      { path: '/chat', component: { template: '<div />' } },
+      { path: '/dashboard/channels', component: { template: '<div />' } }
     ]
   });
   await router.push('/register');
@@ -53,7 +54,7 @@ describe('RegisterView', () => {
     expect(wrapper.text()).toContain('Nickname must be 2-20 characters');
   });
 
-  it('registers, signs in and navigates to chat', async () => {
+  it('registers, signs in and lands on channel setup', async () => {
     const { wrapper, router } = await mountRegister();
     await wrapper.find('#reg-email').setValue('new@x.io');
     await wrapper.find('#reg-nickname').setValue('Neema');
@@ -63,7 +64,8 @@ describe('RegisterView', () => {
     await wrapper.find('form').trigger('submit');
     await flushPromises();
 
-    expect(router.currentRoute.value.path).toBe('/chat');
+    expect(router.currentRoute.value.path).toBe('/dashboard/channels');
+    expect(router.currentRoute.value.query.first_login).toBe('true');
   });
 
   it('reports duplicate emails', async () => {

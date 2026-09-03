@@ -20,6 +20,7 @@ async function mountView() {
     routes: [
       { path: '/dashboard/channels', component: ChannelsView },
       { path: '/dashboard/channels/connect/:platform', component: { template: '<div />' } },
+      { path: '/auth/callback/:platform', component: { template: '<div />' } },
       { path: '/dashboard/subscription/upgrade', component: { template: '<div />' } },
       { path: '/home', component: { template: '<div />' } }
     ]
@@ -51,13 +52,70 @@ describe('Channels management page', () => {
     expect(wrapper.findAll('.channel-status--disconnected')).toHaveLength(4);
   });
 
-  it('navigates to the connect flow for a platform', async () => {
+  it('opens the credential dialog for a platform', async () => {
+    const { wrapper } = await mountView();
+
+    await wrapper.find('.channel-card--whatsapp .channel-card__btn--primary').trigger('click');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('.cred-dialog').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Connect WhatsApp');
+    expect(wrapper.text()).toContain('Phone Number ID');
+    expect(wrapper.findAll('.cred-field input')).toHaveLength(3);
+  });
+
+  it('submits credentials and follows the demo oauth loop', async () => {
     const { wrapper, router } = await mountView();
 
     await wrapper.find('.channel-card--whatsapp .channel-card__btn--primary').trigger('click');
+    await wrapper.vm.$nextTick();
+    const inputs = wrapper.findAll('.cred-field input');
+    await inputs[0].setValue('123456789012345');
+    await inputs[1].setValue('token-value');
+    await inputs[2].setValue('verify-value');
+    await wrapper.find('.cred-dialog__form').trigger('submit');
+    await new Promise((resolve) => setTimeout(resolve, 0));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(router.currentRoute.value.path).toBe('/dashboard/channels/connect/whatsapp');
+    expect(router.currentRoute.value.path).toBe('/auth/callback/whatsapp');
+  });
+
+  it('continues with oauth from the credential dialog', async () => {
+    const { wrapper, router } = await mountView();
+
+    await wrapper.find('.channel-card--facebook .channel-card__btn--primary').trigger('click');
+    await wrapper.vm.$nextTick();
+    await wrapper.find('.cred-dialog__oauth').trigger('click');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(router.currentRoute.value.path).toBe('/auth/callback/facebook');
+  });
+
+  it('shows the first-login welcome banner and dismisses it', async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/dashboard/channels', component: ChannelsView },
+        { path: '/home', component: { template: '<div />' } }
+      ]
+    });
+    await router.push('/dashboard/channels?first_login=true');
+    await router.isReady();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    const wrapper = mount(ChannelsView, { global: { plugins: [pinia, router, Vant] } });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('Welcome! Connect your first social channel');
+
+    await wrapper.find('.channels-page__welcome-close').trigger('click');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('.channels-page__welcome').exists()).toBe(false);
+    expect(localStorage.getItem('ks-first-login-dismissed')).toBe('1');
   });
 
   it('shows the limit warning and disables new connections when full', async () => {

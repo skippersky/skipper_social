@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import ConversationList from '../components/ConversationList.vue';
 import ChatWindow from '../components/ChatWindow.vue';
@@ -14,6 +14,15 @@ const i18n = useI18nStore();
 const conversations = ref<Conversation[]>([]);
 const conversationsLoading = ref(true);
 const conversationsDegraded = ref(false);
+
+// Sample data stays visible until the user dismisses it (persisted).
+const DEMO_HIDDEN_KEY = 'ks-chat-demo-hidden';
+const demoHidden = ref(false);
+try {
+  demoHidden.value = localStorage.getItem(DEMO_HIDDEN_KEY) === '1';
+} catch {
+  /* private mode */
+}
 
 const selected = ref<Conversation | null>(null);
 const messages = ref<Message[]>([]);
@@ -40,6 +49,25 @@ async function loadConversations(): Promise<void> {
   conversations.value = result.data;
   conversationsDegraded.value = result.degraded;
   conversationsLoading.value = false;
+}
+
+const showDemoList = computed(
+  () => conversationsDegraded.value && !demoHidden.value && conversations.value.length > 0
+);
+const showEmpty = computed(
+  () =>
+    !conversationsLoading.value &&
+    !showDemoList.value &&
+    (conversations.value.length === 0 || conversationsDegraded.value)
+);
+
+function hideDemo(): void {
+  demoHidden.value = true;
+  try {
+    localStorage.setItem(DEMO_HIDDEN_KEY, '1');
+  } catch {
+    /* private mode */
+  }
 }
 
 async function loadMessages(conversationId: string): Promise<void> {
@@ -121,14 +149,35 @@ function backToList(): void {
         </span>
         <span class="chat-page__count">{{ conversations.length }}</span>
       </div>
-      <div v-if="conversationsDegraded && !conversationsLoading" class="chat-page__notice">
-        <span>{{ i18n.t('api.network') }}</span>
-        <button type="button" @click="loadConversations">{{ i18n.t('common.retry') }}</button>
-      </div>
       <div v-if="conversationsLoading" class="chat-page__loading">
         <van-skeleton title :row="6" />
       </div>
-      <van-empty v-else-if="conversations.length === 0" :description="i18n.t('chat.empty')" />
+      <template v-else-if="showDemoList">
+        <div class="chat-page__demo" role="note">
+          <span class="chat-page__demo-text">{{ i18n.t('chat.demoNotice') }}</span>
+          <button
+            class="chat-page__demo-close"
+            type="button"
+            :aria-label="i18n.t('chat.demoHide')"
+            @click="hideDemo"
+          >
+            ×
+          </button>
+        </div>
+        <ConversationList
+          :conversations="conversations"
+          :selected-id="selected?.id ?? null"
+          @select="onSelect"
+        />
+      </template>
+      <div v-else-if="showEmpty" class="chat-page__empty">
+        <van-empty :description="i18n.t('chat.noData')">
+          <p class="chat-page__empty-hint">{{ i18n.t('chat.noDataHint') }}</p>
+          <button class="chat-page__empty-cta" type="button" @click="router.push('/dashboard/channels')">
+            {{ i18n.t('chat.connectCta') }}
+          </button>
+        </van-empty>
+      </div>
       <ConversationList
         v-else
         :conversations="conversations"
@@ -225,24 +274,58 @@ function backToList(): void {
   border-radius: 999px;
   padding: 2px 10px;
 }
-.chat-page__notice {
+.chat-page__demo {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 16px;
   font-size: 12px;
+  line-height: 18px;
   color: var(--ks-warning);
-  background: rgba(180, 83, 9, 0.08);
-  border-bottom: 1px solid var(--ks-border-default);
+  background: rgba(180, 83, 9, 0.1);
+  border-bottom: 1px solid rgba(180, 83, 9, 0.2);
 }
-.chat-page__notice button {
+.chat-page__demo-close {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
   border: none;
+  border-radius: 6px;
   background: transparent;
-  color: var(--ks-primary-text);
-  font-size: 12px;
+  color: var(--ks-warning);
+  font-size: 14px;
+  cursor: pointer;
+}
+.chat-page__demo-close:hover {
+  background: rgba(180, 83, 9, 0.15);
+}
+.chat-page__empty {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.chat-page__empty-hint {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ks-text-secondary);
+}
+.chat-page__empty-cta {
+  height: 40px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--ks-radius-btn);
+  background: var(--ks-grad-brand);
+  color: var(--ks-ink-on-grad);
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+}
+.chat-page__empty-cta:hover {
+  filter: brightness(1.05);
 }
 .chat-page__loading {
   padding: 16px;

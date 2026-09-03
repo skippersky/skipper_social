@@ -1,15 +1,25 @@
 import * as channelApi from '../api/channel';
 import type { AuthResult, ChannelStatus, TokenResult } from '../types';
-import type { ChannelProvider } from './types';
+import type { ChannelProvider, CredentialField } from './types';
 
 export class FacebookProvider implements ChannelProvider {
   readonly platform = 'facebook' as const;
 
-  connect(): Promise<AuthResult> {
-    return channelApi.connectChannel(this.platform).then((result) => ({
-      authUrl: result.authUrl ?? '',
-      demo: result.channel === undefined && result.authUrl?.startsWith('/')
-    }));
+  getRequiredCredentials(): CredentialField[] {
+    return [
+      { key: 'page_id', label: 'Page ID', type: 'text', placeholder: 'e.g. 100200300400500', required: true },
+      { key: 'page_access_token', label: 'Page Access Token', type: 'password', placeholder: 'EAAB...', required: true }
+    ];
+  }
+
+  connect(credentials?: Record<string, string>): Promise<AuthResult> {
+    return channelApi
+      .connectChannel(this.platform, credentials ? { credentials } : {})
+      .then((result) => ({
+        authUrl: result.authUrl ?? '',
+        channel: result.channel,
+        demo: result.channel === undefined && result.authUrl?.startsWith('/')
+      }));
   }
 
   disconnect(channelId: string): Promise<void> {

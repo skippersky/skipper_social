@@ -10,7 +10,7 @@ import {
   channelBus
 } from '../events/channel';
 import { getChannelProvider } from '../providers/ChannelProviderFactory';
-import type { Channel, ChannelPlatform } from '../types';
+import type { AuthResult, Channel, ChannelPlatform } from '../types';
 import { useSubscriptionStore } from './subscription';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'success' | 'error';
@@ -54,13 +54,25 @@ export const useChannelStore = defineStore('channel', () => {
     }
   }
 
-  /** Starts OAuth via the platform provider; returns the authorization URL. */
-  async function connect(platform: ChannelPlatform): Promise<string | null> {
+  /**
+   * Starts OAuth via the platform provider, or connects with manual
+   * credentials. `channel` is set when the backend accepted the
+   * credentials directly; `authUrl` when a redirect is required.
+   */
+  async function connect(
+    platform: ChannelPlatform,
+    credentials?: Record<string, string>
+  ): Promise<AuthResult | null> {
     connectionStatus.value = 'connecting';
     error.value = null;
     try {
-      const result = await getChannelProvider(platform).connect();
-      return result.authUrl;
+      const result = await getChannelProvider(platform).connect(credentials);
+      if (result.channel) {
+        channels.value = [...channels.value.filter((c) => c.platform !== platform), result.channel];
+        connectionStatus.value = 'success';
+        channelBus.emit({ type: CHANNEL_CONNECTED, platform, channel: result.channel });
+      }
+      return result;
     } catch (err) {
       connectionStatus.value = 'error';
       fail(err);

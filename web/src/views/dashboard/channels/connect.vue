@@ -33,15 +33,15 @@ async function initiate(): Promise<void> {
     await router.replace('/dashboard/channels');
     return;
   }
-  const url = await store.connect(platform.value);
-  if (!url) {
+  const result = await store.connect(platform.value);
+  if (!result || !result.authUrl) {
     failed.value = true;
     return;
   }
-  if (url.startsWith('/')) {
-    await router.replace(url);
+  if (result.authUrl.startsWith('/')) {
+    await router.replace(result.authUrl);
   } else {
-    window.location.assign(url);
+    window.location.assign(result.authUrl);
   }
 }
 
