@@ -10,11 +10,17 @@ export interface Conversation {
   lastMessageTime: number;
   unreadCount: number;
   avatarUrl?: string;
+  /** Platform the contact wrote from; absent for legacy/local data. */
+  platform?: ChannelPlatform;
+  archived?: boolean;
+  assignedTo?: string | null;
+  /** True when the row comes from the offline demo directory. */
+  demo?: boolean;
 }
 
-export type MessageType = 'text' | 'image' | 'location';
+export type MessageType = 'text' | 'image' | 'location' | 'file' | 'audio';
 export type MessageSender = 'user' | 'contact';
-export type MessageStatus = 'sending' | 'sent' | 'read';
+export type MessageStatus = 'sending' | 'sent' | 'read' | 'failed';
 
 export interface Message {
   id: string;
@@ -26,6 +32,32 @@ export interface Message {
   status: MessageStatus;
   /** Present for image/location messages (image URL or map link). */
   mediaUrl?: string;
+}
+
+export interface PagedMessages {
+  messages: Message[];
+  hasMore: boolean;
+}
+
+export interface ConversationFilters {
+  query: string;
+  status: 'all' | 'unread' | 'archived';
+  platform: 'all' | ChannelPlatform;
+}
+
+export interface AiReplySuggestion {
+  id: string;
+  text: string;
+}
+
+export interface QuickReplyTemplate {
+  id: string;
+  title: string;
+  text: string;
+}
+
+export interface UploadResult {
+  url: string;
 }
 export type SubscriptionTier = 'free' | 'basic' | 'pro';
 

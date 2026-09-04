@@ -1,13 +1,20 @@
 import { ApiError } from './http';
 import type {
+  AiReplySuggestion,
   Channel,
   ChannelPlatform,
   ConnectResult,
+  Conversation,
+  Message,
+  MessageType,
   OAuthCallbackParams,
+  PagedMessages,
   Plan,
+  QuickReplyTemplate,
   Subscription,
   SubscriptionTier,
   TokenResult,
+  UploadResult,
   UsageRecord,
   UsageSnapshot,
   WebhookStatus
@@ -315,4 +322,195 @@ export function demoRegisterWebhook(platform: ChannelPlatform, url: string): Web
     /* private mode */
   }
   return status;
+}
+/* Sprint 6: demo inbox dataset (conversations + paginated history). */
+const INBOX_KEY = 'ks-demo-inbox';
+
+interface InboxState {
+  conversations: Conversation[];
+  messages: Record<string, Message[]>;
+}
+
+function demoMediaUrl(label: string): string {
+  return (
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160'%3E%3Crect width='240' height='160' rx='12' fill='%23FFB238'/%3E%3Ctext x='120' y='88' font-size='16' text-anchor='middle' fill='%23221507'%3E" +
+    encodeURIComponent(label) +
+    '%3C/text%3E%3C/svg%3E'
+  );
+}
+
+function seedInbox(): InboxState {
+  const now = Date.now();
+  const conversations: Conversation[] = [
+    { id: 'i-1', contactName: 'Amani Juma', contactPhone: '+255 712 345 678', platform: 'whatsapp', lastMessage: 'Ningependa kujua zaidi kuhusu vifurushi.', lastMessageTime: now - 4 * 60_000, unreadCount: 2 },
+    { id: 'i-2', contactName: 'Neema Wanjiru', contactPhone: '+254 723 456 789', platform: 'whatsapp', lastMessage: 'Asante kwa majibu ya haraka, nitarudi kesho.', lastMessageTime: now - 55 * 60_000, unreadCount: 0 },
+    { id: 'i-3', contactName: 'Grace Adeyemi', contactPhone: '+234 803 555 0107', platform: 'facebook', lastMessage: 'Do you ship to Lagos?', lastMessageTime: now - 3 * 3_600_000, unreadCount: 1 },
+    { id: 'i-4', contactName: 'Zuri Abebe', contactPhone: '+251 911 223 344', platform: 'instagram', lastMessage: 'Picha ya bidhaa imefika vizuri sana, asante!', lastMessageTime: now - 26 * 3_600_000, unreadCount: 0 },
+    { id: 'i-5', contactName: 'Kofi Mensah', contactPhone: '+233 24 555 0199', platform: 'tiktok', lastMessage: 'Saw the video, price please?', lastMessageTime: now - 2 * 86_400_000, unreadCount: 0 },
+    { id: 'i-6', contactName: 'Baraka Okonkwo', contactPhone: '+256 701 234 567', platform: 'whatsapp', lastMessage: 'Nitapita dukani kesho alasiri kuchukua oda yangu.', lastMessageTime: now - 6 * 86_400_000, unreadCount: 0, archived: true }
+  ];
+  const history: Message[] = [];
+  for (let i = 0; i < 26; i += 1) {
+    const fromContact = i % 2 === 0;
+    history.push({
+      id: `i-1-m-${i}`,
+      conversationId: 'i-1',
+      content: fromContact ? `Habari, nauliza kuhusu oda yangu #${100 + i}.` : `Karibu! Oda #${100 + i} imeshatunwa leo.`,
+      type: 'text',
+      sender: fromContact ? 'contact' : 'user',
+      timestamp: now - (26 - i) * 3 * 3_600_000,
+      status: 'read'
+    });
+  }
+  history.push({ id: 'i-1-m-img', conversationId: 'i-1', content: 'product-catalog.jpg', type: 'image', sender: 'user', timestamp: now - 8 * 60_000, status: 'read', mediaUrl: demoMediaUrl('Catalog') });
+  history.push({ id: 'i-1-m-last', conversationId: 'i-1', content: 'Ningependa kujua zaidi kuhusu vifurushi.', type: 'text', sender: 'contact', timestamp: now - 4 * 60_000, status: 'read' });
+  const messages: Record<string, Message[]> = {
+    'i-1': history,
+    'i-2': [
+      { id: 'i-2-m-1', conversationId: 'i-2', content: 'Je, stock ya wiki hii imefika?', type: 'text', sender: 'contact', timestamp: now - 70 * 60_000, status: 'read' },
+      { id: 'i-2-m-2', conversationId: 'i-2', content: 'Ndiyo, imefika jana. Nikutumie picha?', type: 'text', sender: 'user', timestamp: now - 60 * 60_000, status: 'read' },
+      { id: 'i-2-m-3', conversationId: 'i-2', content: 'Asante kwa majibu ya haraka, nitarudi kesho.', type: 'text', sender: 'contact', timestamp: now - 55 * 60_000, status: 'read' }
+    ],
+    'i-3': [
+      { id: 'i-3-m-1', conversationId: 'i-3', content: 'Hello! I saw your page via a friend.', type: 'text', sender: 'contact', timestamp: now - 4 * 3_600_000, status: 'read' },
+      { id: 'i-3-m-2', conversationId: 'i-3', content: 'Do you ship to Lagos?', type: 'text', sender: 'contact', timestamp: now - 3 * 3_600_000, status: 'read' }
+    ],
+    'i-4': [
+      { id: 'i-4-m-1', conversationId: 'i-4', content: 'product-photo.jpg', type: 'image', sender: 'user', timestamp: now - 27 * 3_600_000, status: 'read', mediaUrl: demoMediaUrl('Product') },
+      { id: 'i-4-m-2', conversationId: 'i-4', content: 'Picha ya bidhaa imefika vizuri sana, asante!', type: 'text', sender: 'contact', timestamp: now - 26 * 3_600_000, status: 'read' }
+    ],
+    'i-5': [
+      { id: 'i-5-m-1', conversationId: 'i-5', content: 'Saw the video, price please?', type: 'text', sender: 'contact', timestamp: now - 2 * 86_400_000, status: 'read' }
+    ],
+    'i-6': [
+      { id: 'i-6-m-1', conversationId: 'i-6', content: 'Nitapita dukani kesho alasiri kuchukua oda yangu.', type: 'text', sender: 'contact', timestamp: now - 6 * 86_400_000, status: 'read' }
+    ]
+  };
+  return { conversations, messages };
+}
+function readInbox(): InboxState {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(INBOX_KEY) ?? 'null') as InboxState | null;
+    if (parsed && Array.isArray(parsed.conversations) && parsed.messages) return parsed;
+  } catch {
+    /* corrupted state falls back to a fresh seed */
+  }
+  const seeded = seedInbox();
+  writeInbox(seeded);
+  return seeded;
+}
+
+function writeInbox(state: InboxState): void {
+  try {
+    localStorage.setItem(INBOX_KEY, JSON.stringify(state));
+  } catch {
+    /* private mode */
+  }
+}
+
+export function demoInboxConversations(): Conversation[] {
+  enterDemoMode();
+  return [...readInbox().conversations].sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+}
+
+export function demoInboxMessages(
+  conversationId: string,
+  before?: number,
+  limit = 20
+): PagedMessages {
+  enterDemoMode();
+  const all = readInbox().messages[conversationId] ?? [];
+  const visible = before ? all.filter((m) => m.timestamp < before) : all;
+  const slice = visible.slice(-limit);
+  return { messages: slice, hasMore: visible.length > slice.length };
+}
+
+export function demoInboxSendMessage(
+  conversationId: string,
+  payload: { content: string; type: MessageType; mediaUrl?: string }
+): Message {
+  enterDemoMode();
+  const state = readInbox();
+  const message: Message = {
+    id: `demo-m-${Date.now()}-${Math.floor(Math.random() * 10_000)}`,
+    conversationId,
+    content: payload.content,
+    type: payload.type,
+    sender: 'user',
+    timestamp: Date.now(),
+    status: 'sent',
+    mediaUrl: payload.mediaUrl
+  };
+  state.messages[conversationId] = [...(state.messages[conversationId] ?? []), message];
+  const conversation = state.conversations.find((c) => c.id === conversationId);
+  if (conversation) {
+    conversation.lastMessage = payload.content;
+    conversation.lastMessageTime = message.timestamp;
+  }
+  writeInbox(state);
+  return message;
+}
+
+export function demoInboxMarkRead(conversationId: string): void {
+  enterDemoMode();
+  const state = readInbox();
+  const conversation = state.conversations.find((c) => c.id === conversationId);
+  if (conversation) {
+    conversation.unreadCount = 0;
+    writeInbox(state);
+  }
+}
+
+export function demoInboxSetArchived(conversationId: string, archived: boolean): void {
+  enterDemoMode();
+  const state = readInbox();
+  const conversation = state.conversations.find((c) => c.id === conversationId);
+  if (conversation) {
+    conversation.archived = archived;
+    writeInbox(state);
+  }
+}
+
+export function demoInboxDeleteMessage(messageId: string): void {
+  enterDemoMode();
+  const state = readInbox();
+  for (const key of Object.keys(state.messages)) {
+    state.messages[key] = state.messages[key].filter((m) => m.id !== messageId);
+  }
+  writeInbox(state);
+}
+
+export function demoUploadMedia(fileName: string): UploadResult {
+  enterDemoMode();
+  return { url: demoMediaUrl(fileName.slice(0, 12) || 'file') };
+}
+export const DEMO_QUICK_TEMPLATES: QuickReplyTemplate[] = [
+  { id: 't-greet', title: 'Greeting', text: 'Habari! Karibu KiliSocial. Nikusaidieje leo?' },
+  { id: 't-price', title: 'Price quote', text: 'Bei ya bidhaa hii ni TSh 25,000. Tuna punguzo kwa oda kubwa.' },
+  { id: 't-thanks', title: 'Thanks', text: 'Asante sana kwa kuwasiliana nasi! Karibu tena.' },
+  { id: 't-follow', title: 'Follow-up', text: 'Habari! Tulituma maelezo jana. Je, umepata nafasi ya kuyapitia?' }
+];
+
+export function demoQuickTemplates(): QuickReplyTemplate[] {
+  enterDemoMode();
+  return DEMO_QUICK_TEMPLATES.map((t) => ({ ...t }));
+}
+
+export function demoApplyTemplate(templateId: string): { text: string } {
+  enterDemoMode();
+  const template = DEMO_QUICK_TEMPLATES.find((t) => t.id === templateId);
+  if (!template) throw new ApiError('NOT_FOUND', 'template not found');
+  return { text: template.text };
+}
+
+/** Canned bilingual suggestion echoing the latest contact message. */
+export function demoGenerateReply(conversationId: string): AiReplySuggestion {
+  enterDemoMode();
+  const list = readInbox().messages[conversationId] ?? [];
+  const last = [...list].reverse().find((m) => m.sender === 'contact');
+  const snippet = (last?.content ?? 'ujumbe wako').slice(0, 40);
+  return {
+    id: `demo-ai-${Date.now()}`,
+    text: `Asante kwa ujumbe wako kuhusu "${snippet}". Karibu! Tunapendekeza bei nafuu na usafirishaji haraka. Thanks for your message - we offer fair prices and fast delivery.`
+  };
 }

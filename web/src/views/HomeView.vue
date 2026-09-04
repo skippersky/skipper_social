@@ -14,7 +14,7 @@ const i18n = useI18nStore();
           <h1 class="home__title">{{ i18n.t('home.title') }}</h1>
           <p class="home__subtitle">{{ i18n.t('home.subtitle') }}</p>
           <div class="home__cta">
-            <router-link to="/chat" class="home__cta-primary">
+            <router-link to="/dashboard/conversations" class="home__cta-primary">
               {{ i18n.t('home.cta') }}
             </router-link>
             <router-link to="/editor" class="home__cta-secondary">
@@ -45,7 +45,7 @@ const i18n = useI18nStore();
     </section>
 
     <section class="home__features">
-      <router-link class="feature" to="/chat">
+      <router-link class="feature" to="/dashboard/conversations">
         <span class="feature__icon feature__icon--chat" aria-hidden="true"></span>
         <span class="feature__title">{{ i18n.t('home.entryChatTitle') }}</span>
         <span class="feature__desc">{{ i18n.t('home.entryChatDesc') }}</span>

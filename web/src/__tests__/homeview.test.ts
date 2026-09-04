@@ -10,7 +10,7 @@ async function mountHome() {
     history: createMemoryHistory(),
     routes: [
       { path: '/', component: HomeView },
-      { path: '/chat', component: { template: '<div />' } },
+      { path: '/dashboard/conversations', component: { template: '<div />' } },
       { path: '/editor', component: { template: '<div />' } },
       { path: '/drafts', component: { template: '<div />' } },
       { path: '/dashboard/channels', component: { template: '<div />' } }
@@ -37,7 +37,7 @@ describe('HomeView', () => {
     const wrapper = await mountHome();
     const hrefs = wrapper.findAll('a').map((a) => a.attributes('href'));
 
-    expect(hrefs).toContain('/chat');
+    expect(hrefs).toContain('/dashboard/conversations');
     expect(hrefs).toContain('/editor');
     expect(hrefs).toContain('/drafts');
     expect(hrefs).toContain('/dashboard/channels');
