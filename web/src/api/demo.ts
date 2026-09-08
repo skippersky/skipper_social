@@ -594,7 +594,7 @@ function hydrateCustomer(record: CustomerRecord, tags: Tag[]): Customer {
   const known = tagIds
     .map((id) => tags.find((tag) => tag.id === id))
     .filter((tag): tag is Tag => Boolean(tag));
-  return { ...rest, tags: known.map((tag) => ({ ...tag })) };
+  return { ...rest, tags: known.map((tag) => ({ ...tag })), demo: true };
 }
 
 export interface DemoCustomerListParams {

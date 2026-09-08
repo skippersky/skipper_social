@@ -39,7 +39,29 @@ const {
   deleteTag
 } = useCustomerTags();
 
+/* Sample-data disclosure, mirroring the inbox: hiding it collapses the demo rows. */
+const DEMO_HIDDEN_KEY = 'ks-customers-demo-hidden';
+const demoHidden = ref(false);
+const showDemoBar = computed(() => store.hasDemoData && !demoHidden.value);
+const visibleCustomers = computed(() =>
+  store.hasDemoData && demoHidden.value ? [] : customers.value
+);
+
+function hideDemo(): void {
+  demoHidden.value = true;
+  try {
+    localStorage.setItem(DEMO_HIDDEN_KEY, '1');
+  } catch {
+    /* private mode */
+  }
+}
+
 onMounted(() => {
+  try {
+    demoHidden.value = localStorage.getItem(DEMO_HIDDEN_KEY) === '1';
+  } catch {
+    /* private mode */
+  }
   void refresh();
   void loadTags();
 });
@@ -57,7 +79,7 @@ const deleteShow = computed({
   }
 });
 
-const isEmpty = computed(() => !loading.value && customers.value.length === 0);
+const isEmpty = computed(() => !loading.value && visibleCustomers.value.length === 0);
 
 function onSearchInput(event: Event): void {
   store.setFilters({ query: (event.target as HTMLInputElement).value });
@@ -203,7 +225,12 @@ function onListScroll(event: Event): void {
       </div>
     </div>
 
-    <div v-if="loading && !customers.length" class="customers__loading">&hellip;</div>
+    <div v-if="showDemoBar" class="customers__demo" role="note">
+      <span>{{ i18n.t('customers.demoNotice') }}</span>
+      <button type="button" :aria-label="i18n.t('customers.demoHide')" @click="hideDemo">&times;</button>
+    </div>
+
+    <div v-if="loading && !visibleCustomers.length" class="customers__loading">&hellip;</div>
     <div v-else-if="isEmpty" class="customers__empty">
       <van-empty :description="i18n.t('customers.empty')">
         <p class="customers__empty-hint">{{ i18n.t('customers.emptyHint') }}</p>
@@ -214,7 +241,7 @@ function onListScroll(event: Event): void {
     </div>
     <div v-else class="customers__scroll" @scroll.passive="onListScroll">
       <CustomerList
-        :customers="customers"
+        :customers="visibleCustomers"
         @select="openDetail"
         @edit="openEdit"
         @delete="requestDelete"
@@ -383,6 +410,34 @@ function onListScroll(event: Event): void {
   background: var(--ks-grad-soft);
   border-color: var(--ks-primary-text);
   color: var(--ks-primary-text);
+}
+.customers__demo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ks-warning);
+  background: rgba(180, 83, 9, 0.1);
+  border: 1px solid rgba(180, 83, 9, 0.2);
+  border-radius: var(--ks-radius-card);
+}
+.customers__demo button {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ks-warning);
+  font-size: 14px;
+  cursor: pointer;
+}
+.customers__demo button:hover {
+  background: rgba(180, 83, 9, 0.15);
 }
 .customers__loading {
   padding: 32px 16px;

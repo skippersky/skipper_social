@@ -235,6 +235,8 @@ export interface Customer {
   conversationCount: number;
   lastContactAt: number | null;
   createdAt: number;
+  /** True when the row comes from the offline demo directory. */
+  demo?: boolean;
 }
 
 export interface CustomerInput {

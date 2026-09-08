@@ -68,6 +68,19 @@ describe('customer store loading', () => {
     expect(mocked.getCustomers).toHaveBeenCalledWith({ limit: 20, offset: 0 });
   });
 
+  it('flags demo rows for the sample data disclosure', async () => {
+    const store = useCustomerStore();
+    expect(store.hasDemoData).toBe(false);
+
+    mocked.getCustomers.mockResolvedValue(page([customer({ id: 'u-1', demo: true })], 1));
+    await store.fetchCustomers();
+    expect(store.hasDemoData).toBe(true);
+
+    mocked.getCustomers.mockResolvedValue(page([customer({ id: 'srv-1' })], 1));
+    await store.fetchCustomers();
+    expect(store.hasDemoData).toBe(false);
+  });
+
   it('maps failures to an i18n error key', async () => {
     mocked.getCustomers.mockRejectedValue(new ApiError('HTTP_500', 'boom'));
     const store = useCustomerStore();

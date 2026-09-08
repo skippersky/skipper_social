@@ -5,10 +5,34 @@ import Vant from 'vant';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
 import CustomersView from '../views/dashboard/customers/index.vue';
 
-async function mountCustomers(seed: Record<string, string> = {}) {
+function jsonResponse(data: unknown) {
+  return {
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({ success: true, code: 'OK', message: '', data })
+  } as Response;
+}
+
+/** Backend mode: the customer endpoint answers, the tag endpoint returns an empty catalogue. */
+function backendFetch() {
+  return vi.fn().mockImplementation((url: unknown) => {
+    const data = String(url).includes('/tags')
+      ? []
+      : {
+          customers: [
+            { id: 'srv-1', name: 'Real Buyer', tags: [], channels: [], conversationCount: 0, lastContactAt: null, createdAt: 1 }
+          ],
+          hasMore: false,
+          total: 1
+        };
+    return Promise.resolve(jsonResponse(data));
+  });
+}
+
+async function mountCustomers(seed: Record<string, string> = {}, fetchMock?: ReturnType<typeof vi.fn>) {
   localStorage.clear();
   for (const [key, value] of Object.entries(seed)) localStorage.setItem(key, value);
-  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+  vi.stubGlobal('fetch', fetchMock ?? vi.fn().mockRejectedValue(new Error('offline')));
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -142,6 +166,64 @@ describe('CustomersView directory', () => {
     await wrapper.find('.customers__empty-cta').trigger('click');
     await flushPromises();
     expect(wrapper.find('.cust-form').exists()).toBe(true);
+  });
+});
+
+describe('CustomersView sample data disclosure', () => {
+  it('flags the demo rows and collapses them once dismissed', async () => {
+    const { wrapper } = await mountCustomers();
+
+    expect(wrapper.find('.customers__demo').text()).toContain('Sample data shown below');
+    expect(wrapper.find('.customers__demo button').attributes('aria-label')).toBe('Hide sample data');
+    expect(names(wrapper)).toHaveLength(8);
+
+    await wrapper.find('.customers__demo button').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('.customers__demo').exists()).toBe(false);
+    expect(names(wrapper)).toHaveLength(0);
+    expect(wrapper.find('.customers__empty').exists()).toBe(true);
+    expect(localStorage.getItem('ks-customers-demo-hidden')).toBe('1');
+  });
+
+  it('stays collapsed on the next visit and still offers the create shortcut', async () => {
+    const { wrapper } = await mountCustomers({ 'ks-customers-demo-hidden': '1' });
+
+    expect(wrapper.find('.customers__demo').exists()).toBe(false);
+    expect(names(wrapper)).toHaveLength(0);
+    expect(wrapper.find('.customers__empty-hint').exists()).toBe(true);
+
+    await wrapper.find('.customers__empty-cta').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('.cust-form').isVisible()).toBe(true);
+  });
+
+  it('drops the disclosure when a search returns no rows', async () => {
+    const { wrapper } = await mountCustomers();
+    const search = wrapper.find('.customers__search-input');
+
+    await search.setValue('nobody-here');
+    await wrapper.find('.customers__search').trigger('submit');
+    await flushPromises();
+
+    expect(names(wrapper)).toHaveLength(0);
+    expect(wrapper.find('.customers__demo').exists()).toBe(false);
+    expect(wrapper.find('.customers__empty').exists()).toBe(true);
+
+    await search.setValue('');
+    await wrapper.find('.customers__search').trigger('submit');
+    await flushPromises();
+
+    expect(names(wrapper)).toHaveLength(8);
+    expect(wrapper.find('.customers__demo').exists()).toBe(true);
+  });
+
+  it('shows no disclosure when the backend answers', async () => {
+    const { wrapper } = await mountCustomers({}, backendFetch());
+
+    expect(names(wrapper)).toEqual(['Real Buyer']);
+    expect(wrapper.find('.customers__demo').exists()).toBe(false);
+    expect(wrapper.find('.customers__count').text()).toBe('1');
   });
 });
 

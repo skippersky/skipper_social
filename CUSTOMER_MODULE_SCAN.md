@@ -69,3 +69,20 @@ detail profile, stats, conversation history, tags CRUD and assignment).
   views/dashboard/customers/index.vue 93.33%, detail.vue 96.5%.
 - `pnpm run typecheck` (vue-tsc) clean; `pnpm run build` clean
   (524 modules, dist/assets/index-*.js 577.13 kB).
+
+## Sample-data disclosure (follow-up, same sprint)
+
+The customer directory now carries the same disclosure the inbox got in the
+Sprint 5b hotfix, so demo rows are never mistaken for real data:
+
+- `Customer.demo?: boolean` (types) is set by `hydrateCustomer()` in
+  `api/demo.ts`; backend rows never carry it.
+- `stores/customer.ts` exposes `hasDemoData` (mirrors `stores/conversation.ts`).
+- `views/dashboard/customers/index.vue` renders an amber `role="note"` bar with a
+  dismiss button. Dismissing hides the bar **and** collapses the demo rows into
+  the empty state with the create shortcut, persisted under
+  `ks-customers-demo-hidden` (separate from the inbox key `ks-chat-demo-hidden`).
+- The bar disappears on its own when a search returns no rows and when the
+  backend answers, because both cases clear `hasDemoData`.
+- New i18n keys: `customers.demoNotice`, `customers.demoHide` (en/zh/fr, 386
+  keys per locale now).

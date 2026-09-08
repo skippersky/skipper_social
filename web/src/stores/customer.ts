@@ -45,6 +45,9 @@ export const useCustomerStore = defineStore('customer', () => {
 
   const customerCount = computed(() => total.value || customers.value.length);
 
+  /** Sample-data disclosure: true while the list comes from the offline demo set. */
+  const hasDemoData = computed(() => customers.value.some((customer) => customer.demo === true));
+
   const currentCustomerConversations = computed(() =>
     currentCustomer.value ? conversationsByCustomer.value[currentCustomer.value.id] ?? [] : []
   );
@@ -192,6 +195,7 @@ export const useCustomerStore = defineStore('customer', () => {
     hasMore,
     filteredCustomers,
     customerCount,
+    hasDemoData,
     currentCustomerConversations,
     fetchCustomers,
     loadMoreCustomers,
