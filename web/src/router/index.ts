@@ -20,6 +20,8 @@ import CheckoutSuccessView from '../views/checkout/success.vue';
 import CheckoutCancelView from '../views/checkout/cancel.vue';
 import CheckoutDemoView from '../views/checkout/demo.vue';
 import ConversationsView from '../views/dashboard/conversations/index.vue';
+import CustomersView from '../views/dashboard/customers/index.vue';
+import CustomerDetailView from '../views/dashboard/customers/detail.vue';
 import ChannelsView from '../views/dashboard/channels/index.vue';
 import ChannelConnectView from '../views/dashboard/channels/connect.vue';
 import AuthCallbackView from '../views/auth/callback.vue';
@@ -72,6 +74,8 @@ export const router = createRouter({
     { path: '/checkout/success', name: 'checkout-success', component: CheckoutSuccessView },
     { path: '/checkout/cancel', name: 'checkout-cancel', component: CheckoutCancelView },
     { path: '/dashboard/conversations', name: 'conversations', component: ConversationsView },
+    { path: '/dashboard/customers', name: 'customers', component: CustomersView },
+    { path: '/dashboard/customers/:id', name: 'customer-detail', component: CustomerDetailView },
     { path: '/dashboard/channels', name: 'channels', component: ChannelsView },
     { path: '/dashboard/channels/connect/:platform', name: 'channel-connect', component: ChannelConnectView },
     { path: '/auth/callback/:platform', name: 'auth-callback', component: AuthCallbackView }

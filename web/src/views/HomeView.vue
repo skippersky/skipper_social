@@ -50,6 +50,11 @@ const i18n = useI18nStore();
         <span class="feature__title">{{ i18n.t('home.entryChatTitle') }}</span>
         <span class="feature__desc">{{ i18n.t('home.entryChatDesc') }}</span>
       </router-link>
+      <router-link class="feature" to="/dashboard/customers">
+        <span class="feature__icon feature__icon--customer" aria-hidden="true"></span>
+        <span class="feature__title">{{ i18n.t('home.entryCustomersTitle') }}</span>
+        <span class="feature__desc">{{ i18n.t('home.entryCustomersDesc') }}</span>
+      </router-link>
       <router-link class="feature" to="/editor">
         <span class="feature__icon feature__icon--spark" aria-hidden="true"></span>
         <span class="feature__title">{{ i18n.t('home.entryEditorTitle') }}</span>
@@ -273,6 +278,11 @@ const i18n = useI18nStore();
   position: absolute;
   inset: 12px;
   border-radius: 4px;
+}
+.feature__icon--customer::after {
+  background: var(--ks-accent);
+  border-radius: 50% 50% 4px 4px;
+  inset: 11px 13px 10px 13px;
 }
 .feature__icon--chat::after {
   background: var(--ks-primary);

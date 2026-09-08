@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { showToast } from 'vant';
 import AIReplyCard from '../../../components/conversation/AIReplyCard.vue';
 import ConnectionStatusBar from '../../../components/conversation/ConnectionStatusBar.vue';
@@ -19,6 +20,7 @@ import { useMessageStore } from '../../../stores/message';
 import { useWebSocketStore } from '../../../stores/websocket';
 import { CHANNEL_PLATFORMS, type QuickReplyTemplate } from '../../../types';
 
+const route = useRoute();
 const i18n = useI18nStore();
 const store = useConversationStore();
 const messageStore = useMessageStore();
@@ -160,6 +162,8 @@ async function onRead(id: string): Promise<void> {
 onMounted(() => {
   void store.fetchConversations();
   ws.connect();
+  const open = route.query.open;
+  if (typeof open === 'string' && open) selectedId.value = open;
 });
 
 onUnmounted(() => {

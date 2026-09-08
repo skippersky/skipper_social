@@ -13,6 +13,7 @@ async function mountHome() {
       { path: '/dashboard/conversations', component: { template: '<div />' } },
       { path: '/editor', component: { template: '<div />' } },
       { path: '/drafts', component: { template: '<div />' } },
+      { path: '/dashboard/customers', component: { template: '<div />' } },
       { path: '/dashboard/channels', component: { template: '<div />' } }
     ]
   });
@@ -40,6 +41,7 @@ describe('HomeView', () => {
     expect(hrefs).toContain('/dashboard/conversations');
     expect(hrefs).toContain('/editor');
     expect(hrefs).toContain('/drafts');
+    expect(hrefs).toContain('/dashboard/customers');
     expect(hrefs).toContain('/dashboard/channels');
   });
 });

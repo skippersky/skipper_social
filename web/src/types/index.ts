@@ -201,3 +201,67 @@ export interface WebhookStatus {
   url?: string;
   updatedAt?: number;
 }
+
+/* Sprint 7: customer management */
+
+export interface Tag {
+  id: string;
+  name: string;
+  /** One of TAG_COLORS. */
+  color: string;
+}
+
+/** Preset tag palette derived from the design system. */
+export const TAG_COLORS = [
+  '#B45309',
+  '#F4633A',
+  '#FFB238',
+  '#5B5BD6',
+  '#15803D',
+  '#DC2626'
+] as const;
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+  avatarUrl?: string;
+  tags: Tag[];
+  /** Channels this customer has conversed through. */
+  channels: ChannelPlatform[];
+  conversationCount: number;
+  lastContactAt: number | null;
+  createdAt: number;
+}
+
+export interface CustomerInput {
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+  tagIds?: string[];
+}
+
+export interface CustomerStats {
+  conversationCount: number;
+  messageCount: number;
+  firstContactAt: number | null;
+  lastContactAt: number | null;
+  activeChannels: ChannelPlatform[];
+}
+
+export interface CustomerFilters {
+  query: string;
+  tagId: string | 'all';
+  channel: 'all' | ChannelPlatform;
+}
+
+export interface PagedCustomers {
+  customers: Customer[];
+  hasMore: boolean;
+  total: number;
+}

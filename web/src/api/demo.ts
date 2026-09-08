@@ -2,6 +2,9 @@ import { ApiError } from './http';
 import type {
   AiReplySuggestion,
   Channel,
+  Customer,
+  CustomerInput,
+  CustomerStats,
   ChannelPlatform,
   ConnectResult,
   Conversation,
@@ -10,9 +13,11 @@ import type {
   OAuthCallbackParams,
   PagedMessages,
   Plan,
+  PagedCustomers,
   QuickReplyTemplate,
   Subscription,
   SubscriptionTier,
+  Tag,
   TokenResult,
   UploadResult,
   UsageRecord,
@@ -513,4 +518,252 @@ export function demoGenerateReply(conversationId: string): AiReplySuggestion {
     id: `demo-ai-${Date.now()}`,
     text: `Asante kwa ujumbe wako kuhusu "${snippet}". Karibu! Tunapendekeza bei nafuu na usafirishaji haraka. Thanks for your message - we offer fair prices and fast delivery.`
   };
+}
+
+/* Sprint 7: demo tag palette + customer directory (linked to the demo inbox by phone). */
+const TAGS_KEY = 'ks-demo-tags';
+const CUSTOMERS_KEY = 'ks-demo-customers';
+
+interface CustomerRecord extends Omit<Customer, 'tags'> {
+  tagIds: string[];
+}
+
+const SEED_TAGS: Tag[] = [
+  { id: 'tag-vip', name: 'VIP', color: '#B45309' },
+  { id: 'tag-lead', name: 'New lead', color: '#5B5BD6' },
+  { id: 'tag-wholesale', name: 'Wholesale', color: '#15803D' },
+  { id: 'tag-followup', name: 'Follow-up', color: '#F4633A' }
+];
+
+function writeTags(tags: Tag[]): void {
+  try {
+    localStorage.setItem(TAGS_KEY, JSON.stringify(tags));
+  } catch {
+    /* private mode */
+  }
+}
+
+function readTags(): Tag[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TAGS_KEY) ?? 'null') as Tag[] | null;
+    if (parsed && Array.isArray(parsed)) return parsed;
+  } catch {
+    /* corrupted state falls back to a fresh seed */
+  }
+  const seeded = SEED_TAGS.map((tag) => ({ ...tag }));
+  writeTags(seeded);
+  return seeded;
+}
+
+function seedCustomers(): CustomerRecord[] {
+  const now = Date.now();
+  return [
+    { id: 'u-1', name: 'Amani Juma', phone: '+255 712 345 678', email: 'amani@example.com', address: 'Dar es Salaam, TZ', notes: 'Prefers Swahili; wholesale interest.', tagIds: ['tag-vip', 'tag-wholesale'], channels: ['whatsapp'], conversationCount: 1, lastContactAt: now - 4 * 60_000, createdAt: now - 40 * 86_400_000 },
+    { id: 'u-2', name: 'Neema Wanjiru', phone: '+254 723 456 789', email: 'neema@example.com', address: 'Nairobi, KE', notes: '', tagIds: ['tag-followup'], channels: ['whatsapp'], conversationCount: 1, lastContactAt: now - 55 * 60_000, createdAt: now - 30 * 86_400_000 },
+    { id: 'u-3', name: 'Grace Adeyemi', phone: '+234 803 555 0107', email: 'grace@example.com', address: 'Lagos, NG', notes: '', tagIds: ['tag-lead'], channels: ['facebook'], conversationCount: 1, lastContactAt: now - 3 * 3_600_000, createdAt: now - 12 * 86_400_000 },
+    { id: 'u-4', name: 'Zuri Abebe', phone: '+251 911 223 344', email: '', address: 'Addis Ababa, ET', notes: '', tagIds: [], channels: ['instagram'], conversationCount: 1, lastContactAt: now - 26 * 3_600_000, createdAt: now - 26 * 86_400_000 },
+    { id: 'u-5', name: 'Kofi Mensah', phone: '+233 24 555 0199', email: 'kofi@example.com', address: 'Accra, GH', notes: 'Found us on TikTok.', tagIds: ['tag-lead'], channels: ['tiktok'], conversationCount: 1, lastContactAt: now - 2 * 86_400_000, createdAt: now - 20 * 86_400_000 },
+    { id: 'u-6', name: 'Baraka Okonkwo', phone: '+256 701 234 567', email: '', address: 'Kampala, UG', notes: '', tagIds: [], channels: ['whatsapp'], conversationCount: 1, lastContactAt: now - 6 * 86_400_000, createdAt: now - 60 * 86_400_000 },
+    { id: 'u-7', name: 'Salma Hassan', phone: '+255 754 118 220', email: 'salma@example.com', address: 'Zanzibar, TZ', notes: 'Met at the trade fair.', tagIds: ['tag-wholesale'], channels: [], conversationCount: 0, lastContactAt: null, createdAt: now - 3 * 86_400_000 },
+    { id: 'u-8', name: 'Daniel Kimaro', phone: '', email: 'daniel.k@example.com', address: '', notes: '', tagIds: [], channels: [], conversationCount: 0, lastContactAt: null, createdAt: now - 86_400_000 }
+  ];
+}
+
+function writeCustomers(list: CustomerRecord[]): void {
+  try {
+    localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(list));
+  } catch {
+    /* private mode */
+  }
+}
+
+function readCustomers(): CustomerRecord[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CUSTOMERS_KEY) ?? 'null') as CustomerRecord[] | null;
+    if (parsed && Array.isArray(parsed)) return parsed;
+  } catch {
+    /* corrupted state falls back to a fresh seed */
+  }
+  const seeded = seedCustomers();
+  writeCustomers(seeded);
+  return seeded;
+}
+
+function hydrateCustomer(record: CustomerRecord, tags: Tag[]): Customer {
+  const { tagIds, ...rest } = record;
+  const known = tagIds
+    .map((id) => tags.find((tag) => tag.id === id))
+    .filter((tag): tag is Tag => Boolean(tag));
+  return { ...rest, tags: known.map((tag) => ({ ...tag })) };
+}
+
+export interface DemoCustomerListParams {
+  query?: string;
+  tagId?: string;
+  channel?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export function demoTags(): Tag[] {
+  enterDemoMode();
+  return readTags().map((tag) => ({ ...tag }));
+}
+
+export function demoCustomers(params?: DemoCustomerListParams): PagedCustomers {
+  enterDemoMode();
+  const tags = readTags();
+  const query = (params?.query ?? '').trim().toLowerCase();
+  const limit = params?.limit ?? 20;
+  const offset = params?.offset ?? 0;
+  const matches = readCustomers()
+    .filter((record) => {
+      if (params?.tagId && !record.tagIds.includes(params.tagId)) return false;
+      if (params?.channel && params.channel !== 'all' && !record.channels.includes(params.channel as ChannelPlatform)) return false;
+      if (query) {
+        const haystack = `${record.name} ${record.phone ?? ''} ${record.email ?? ''}`.toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => (b.lastContactAt ?? 0) - (a.lastContactAt ?? 0) || b.createdAt - a.createdAt);
+  const slice = matches.slice(offset, offset + limit);
+  return {
+    customers: slice.map((record) => hydrateCustomer(record, tags)),
+    hasMore: offset + slice.length < matches.length,
+    total: matches.length
+  };
+}
+
+export function demoCustomerById(id: string): Customer {
+  enterDemoMode();
+  const tags = readTags();
+  const record = readCustomers().find((candidate) => candidate.id === id);
+  if (!record) throw new ApiError('NOT_FOUND', 'customer not found');
+  return hydrateCustomer(record, tags);
+}
+
+export function demoCreateCustomer(input: CustomerInput): Customer {
+  enterDemoMode();
+  const list = readCustomers();
+  const record: CustomerRecord = {
+    id: `u-${Date.now()}-${Math.floor(Math.random() * 10_000)}`,
+    name: input.name.trim(),
+    phone: input.phone?.trim() || '',
+    email: input.email?.trim() || '',
+    address: input.address?.trim() || '',
+    notes: input.notes?.trim() || '',
+    tagIds: input.tagIds ?? [],
+    channels: [],
+    conversationCount: 0,
+    lastContactAt: null,
+    createdAt: Date.now()
+  };
+  list.push(record);
+  writeCustomers(list);
+  return hydrateCustomer(record, readTags());
+}
+
+export function demoUpdateCustomer(id: string, input: CustomerInput): Customer {
+  enterDemoMode();
+  const list = readCustomers();
+  const record = list.find((candidate) => candidate.id === id);
+  if (!record) throw new ApiError('NOT_FOUND', 'customer not found');
+  record.name = input.name.trim() || record.name;
+  record.phone = input.phone?.trim() ?? record.phone ?? '';
+  record.email = input.email?.trim() ?? record.email ?? '';
+  record.address = input.address?.trim() ?? record.address ?? '';
+  record.notes = input.notes?.trim() ?? record.notes ?? '';
+  if (input.tagIds) record.tagIds = input.tagIds;
+  writeCustomers(list);
+  return hydrateCustomer(record, readTags());
+}
+
+export function demoDeleteCustomer(id: string): void {
+  enterDemoMode();
+  writeCustomers(readCustomers().filter((candidate) => candidate.id !== id));
+}
+
+/** Links customers to demo inbox conversations by phone number. */
+export function demoCustomerConversations(id: string): Conversation[] {
+  enterDemoMode();
+  const record = readCustomers().find((candidate) => candidate.id === id);
+  if (!record || !record.phone) return [];
+  return readInbox()
+    .conversations.filter((conversation) => conversation.contactPhone === record.phone)
+    .sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+}
+
+export function demoCustomerStats(id: string): CustomerStats {
+  enterDemoMode();
+  const record = readCustomers().find((candidate) => candidate.id === id);
+  if (!record) throw new ApiError('NOT_FOUND', 'customer not found');
+  const inbox = readInbox();
+  const conversations = record.phone
+    ? inbox.conversations.filter((conversation) => conversation.contactPhone === record.phone)
+    : [];
+  const timestamps: number[] = [];
+  let messageCount = 0;
+  for (const conversation of conversations) {
+    const thread = inbox.messages[conversation.id] ?? [];
+    messageCount += thread.length;
+    for (const item of thread) timestamps.push(item.timestamp);
+  }
+  timestamps.sort((a, b) => a - b);
+  return {
+    conversationCount: conversations.length,
+    messageCount,
+    firstContactAt: timestamps.length ? timestamps[0] : null,
+    lastContactAt: timestamps.length ? timestamps[timestamps.length - 1] : record.lastContactAt,
+    activeChannels: [...new Set(conversations.map((c) => c.platform).filter((p): p is ChannelPlatform => Boolean(p)))]
+  };
+}
+
+export function demoCreateTag(name: string, color: string): Tag {
+  enterDemoMode();
+  const tags = readTags();
+  const tag: Tag = { id: `tag-${Date.now()}`, name: name.trim(), color };
+  tags.push(tag);
+  writeTags(tags);
+  return { ...tag };
+}
+
+export function demoUpdateTag(id: string, patch: { name?: string; color?: string }): Tag {
+  enterDemoMode();
+  const tags = readTags();
+  const tag = tags.find((candidate) => candidate.id === id);
+  if (!tag) throw new ApiError('NOT_FOUND', 'tag not found');
+  if (patch.name !== undefined) tag.name = patch.name.trim() || tag.name;
+  if (patch.color !== undefined) tag.color = patch.color;
+  writeTags(tags);
+  return { ...tag };
+}
+
+export function demoDeleteTag(id: string): void {
+  enterDemoMode();
+  writeTags(readTags().filter((tag) => tag.id !== id));
+  const list = readCustomers();
+  for (const record of list) {
+    record.tagIds = record.tagIds.filter((tagId) => tagId !== id);
+  }
+  writeCustomers(list);
+}
+
+export function demoAssignTag(customerId: string, tagId: string): void {
+  enterDemoMode();
+  const list = readCustomers();
+  const record = list.find((candidate) => candidate.id === customerId);
+  if (!record) throw new ApiError('NOT_FOUND', 'customer not found');
+  if (!readTags().some((tag) => tag.id === tagId)) throw new ApiError('NOT_FOUND', 'tag not found');
+  if (!record.tagIds.includes(tagId)) record.tagIds.push(tagId);
+  writeCustomers(list);
+}
+
+export function demoRemoveTag(customerId: string, tagId: string): void {
+  enterDemoMode();
+  const list = readCustomers();
+  const record = list.find((candidate) => candidate.id === customerId);
+  if (!record) throw new ApiError('NOT_FOUND', 'customer not found');
+  record.tagIds = record.tagIds.filter((id) => id !== tagId);
+  writeCustomers(list);
 }
