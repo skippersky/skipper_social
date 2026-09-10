@@ -55,6 +55,11 @@ const i18n = useI18nStore();
         <span class="feature__title">{{ i18n.t('home.entryCustomersTitle') }}</span>
         <span class="feature__desc">{{ i18n.t('home.entryCustomersDesc') }}</span>
       </router-link>
+      <router-link class="feature" to="/dashboard/analytics">
+        <span class="feature__icon feature__icon--analytics" aria-hidden="true"></span>
+        <span class="feature__title">{{ i18n.t('home.entryAnalyticsTitle') }}</span>
+        <span class="feature__desc">{{ i18n.t('home.entryAnalyticsDesc') }}</span>
+      </router-link>
       <router-link class="feature" to="/editor">
         <span class="feature__icon feature__icon--spark" aria-hidden="true"></span>
         <span class="feature__title">{{ i18n.t('home.entryEditorTitle') }}</span>
@@ -244,7 +249,7 @@ const i18n = useI18nStore();
   margin: 0 auto;
   padding: 40px 24px 8px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 .feature {
@@ -283,6 +288,12 @@ const i18n = useI18nStore();
   background: var(--ks-accent);
   border-radius: 50% 50% 4px 4px;
   inset: 11px 13px 10px 13px;
+}
+.feature__icon--analytics::after {
+  inset: 13px 12px 11px 12px;
+  background: linear-gradient(180deg, var(--ks-primary) 0%, var(--ks-accent) 100%);
+  clip-path: polygon(0 100%, 0 62%, 22% 62%, 22% 100%, 39% 100%, 39% 30%, 61% 30%, 61% 100%, 78% 100%, 78% 0, 100% 0, 100% 100%);
+  border-radius: 0;
 }
 .feature__icon--chat::after {
   background: var(--ks-primary);

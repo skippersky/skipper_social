@@ -11,10 +11,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "echarts": "^6.1.0",
     "localforage": "^1.10.0",
     "pinia": "^2.2.2",
     "vant": "^4.9.4",
     "vue": "^3.4.38",
+    "vue-echarts": "^8.3.0",
     "vue-router": "^4.4.3"
   },
   "devDependencies": {

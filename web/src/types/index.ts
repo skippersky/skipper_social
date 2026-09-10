@@ -267,3 +267,79 @@ export interface PagedCustomers {
   hasMore: boolean;
   total: number;
 }
+
+/* Sprint 8: analytics dashboard */
+
+export type TrendGranularity = 'day' | 'week' | 'month';
+export type DateRangePreset = 'today' | '7d' | '30d' | 'custom';
+
+export interface DateRange {
+  /** Inclusive window start, epoch ms at local midnight. */
+  from: number;
+  /** Inclusive window end, epoch ms. */
+  to: number;
+  preset: DateRangePreset;
+}
+
+export interface OverviewStats {
+  totalCustomers: number;
+  /** Conversations with at least one message inside the range. */
+  totalConversations: number;
+  totalMessages: number;
+  /** Unread is a "right now" metric and is not range scoped. */
+  unreadCount: number;
+  averageResponseMs: number | null;
+  /** Period-over-period change in percent, null when the previous window is empty. */
+  customersChange: number | null;
+  conversationsChange: number | null;
+  messagesChange: number | null;
+  /** True when the numbers came from the offline demo aggregator. */
+  demo?: boolean;
+}
+
+export interface TrendPoint {
+  /** Bucket id: 2026-09-08 (day), 2026-09-07w (week), 2026-09 (month). */
+  bucket: string;
+  /** Bucket start, epoch ms. */
+  timestamp: number;
+  count: number;
+  /** Message trends only: split by direction. */
+  inbound?: number;
+  outbound?: number;
+}
+
+export interface ChannelSlice {
+  platform: ChannelPlatform;
+  conversations: number;
+  /** Share of all ranged conversations, 0..100 with one decimal. */
+  percent: number;
+}
+
+export interface ResponseTimeStats {
+  averageMs: number | null;
+  medianMs: number | null;
+  p90Ms: number | null;
+  p95Ms: number | null;
+  samples: number;
+  /** Service target the gauge is scaled against, in minutes. */
+  targetMinutes: number;
+}
+
+export interface AgentPerformance {
+  agentId: string;
+  name: string;
+  conversations: number;
+  messages: number;
+  averageResponseMs: number | null;
+  /** 0..5, null when there is no feedback yet. */
+  satisfaction: number | null;
+}
+
+export interface TopCustomer {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  conversations: number;
+  messages: number;
+  lastContactAt: number | null;
+}

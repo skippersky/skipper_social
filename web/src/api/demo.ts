@@ -1,24 +1,32 @@
 import { ApiError } from './http';
 import type {
+  AgentPerformance,
   AiReplySuggestion,
   Channel,
+  ChannelSlice,
   Customer,
   CustomerInput,
   CustomerStats,
   ChannelPlatform,
   ConnectResult,
   Conversation,
+  DateRange,
   Message,
   MessageType,
+  OverviewStats,
   OAuthCallbackParams,
   PagedMessages,
   Plan,
   PagedCustomers,
   QuickReplyTemplate,
+  ResponseTimeStats,
   Subscription,
   SubscriptionTier,
   Tag,
   TokenResult,
+  TopCustomer,
+  TrendGranularity,
+  TrendPoint,
   UploadResult,
   UsageRecord,
   UsageSnapshot,
@@ -766,4 +774,251 @@ export function demoRemoveTag(customerId: string, tagId: string): void {
   if (!record) throw new ApiError('NOT_FOUND', 'customer not found');
   record.tagIds = record.tagIds.filter((id) => id !== tagId);
   writeCustomers(list);
+}
+
+/* Sprint 8: demo analytics, aggregated from the demo inbox and customer directory. */
+
+const RESPONSE_TARGET_MINUTES = 240;
+const DAY_MS = 86_400_000;
+
+function startOfDay(ts: number): number {
+  const d = new Date(ts);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function isoDay(ts: number): string {
+  const d = new Date(ts);
+  const month = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+/** Calendar bucket a timestamp belongs to: day, ISO-ish week (Monday first) or month. */
+function bucketOf(ts: number, granularity: TrendGranularity): { key: string; start: number } {
+  const day = startOfDay(ts);
+  if (granularity === 'day') return { key: isoDay(day), start: day };
+  if (granularity === 'week') {
+    const weekday = (new Date(day).getDay() + 6) % 7;
+    const start = day - weekday * DAY_MS;
+    return { key: `${isoDay(start)}w`, start };
+  }
+  const d = new Date(day);
+  const start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  return { key: isoDay(start).slice(0, 7), start };
+}
+
+/** Continuous bucket axis so charts never show gaps for quiet days. */
+function buildBuckets(range: DateRange, granularity: TrendGranularity): { key: string; timestamp: number }[] {
+  const buckets: { key: string; timestamp: number }[] = [];
+  const seen = new Set<string>();
+  const end = startOfDay(range.to);
+  for (let cursor = startOfDay(range.from); cursor <= end; cursor += DAY_MS) {
+    const bucket = bucketOf(cursor, granularity);
+    if (seen.has(bucket.key)) continue;
+    seen.add(bucket.key);
+    buckets.push({ key: bucket.key, timestamp: bucket.start });
+  }
+  return buckets.sort((a, b) => a.timestamp - b.timestamp);
+}
+
+function rangedMessages(inbox: InboxState, range: DateRange): Message[] {
+  const out: Message[] = [];
+  for (const list of Object.values(inbox.messages)) {
+    for (const message of list) {
+      if (message.timestamp >= range.from && message.timestamp <= range.to) out.push(message);
+    }
+  }
+  return out.sort((a, b) => a.timestamp - b.timestamp);
+}
+
+function previousWindow(range: DateRange): DateRange {
+  const span = Math.max(1, range.to - range.from);
+  return { from: range.from - span - 1, to: range.from - 1, preset: range.preset };
+}
+
+/** Null when the previous window has no baseline, so the UI can show a dash. */
+function changePercent(current: number, previous: number): number | null {
+  if (previous <= 0) return null;
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+}
+
+function mean(values: number[]): number | null {
+  if (!values.length) return null;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function percentile(sorted: number[], p: number): number | null {
+  if (!sorted.length) return null;
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
+  return sorted[index];
+}
+
+/** Contact-to-staff reply latencies; the reply must land inside the range. */
+function replyLatencies(inbox: InboxState, range: DateRange, only?: Set<string>): number[] {
+  const out: number[] = [];
+  for (const [conversationId, list] of Object.entries(inbox.messages)) {
+    if (only && !only.has(conversationId)) continue;
+    const sorted = [...list].sort((a, b) => a.timestamp - b.timestamp);
+    let waiting: number | null = null;
+    for (const message of sorted) {
+      if (message.sender === 'contact') {
+        if (waiting === null) waiting = message.timestamp;
+      } else if (waiting !== null) {
+        if (message.timestamp >= range.from && message.timestamp <= range.to) {
+          out.push(message.timestamp - waiting);
+        }
+        waiting = null;
+      }
+    }
+  }
+  return out;
+}
+
+function activeConversationIds(inbox: InboxState, range: DateRange): Set<string> {
+  const ids = new Set<string>();
+  for (const message of rangedMessages(inbox, range)) ids.add(message.conversationId);
+  return ids;
+}
+
+export function demoAnalyticsOverview(range: DateRange): OverviewStats {
+  enterDemoMode();
+  const inbox = readInbox();
+  const previous = previousWindow(range);
+  const customers = readCustomers();
+  const createdIn = (window: DateRange): number =>
+    customers.filter((c) => c.createdAt >= window.from && c.createdAt <= window.to).length;
+  const active = activeConversationIds(inbox, range).size;
+  const activeBefore = activeConversationIds(inbox, previous).size;
+  const messages = rangedMessages(inbox, range).length;
+  const messagesBefore = rangedMessages(inbox, previous).length;
+  return {
+    totalCustomers: customers.length,
+    totalConversations: active,
+    totalMessages: messages,
+    unreadCount: inbox.conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0),
+    averageResponseMs: mean(replyLatencies(inbox, range)),
+    customersChange: changePercent(createdIn(range), createdIn(previous)),
+    conversationsChange: changePercent(active, activeBefore),
+    messagesChange: changePercent(messages, messagesBefore),
+    demo: true
+  };
+}
+
+export function demoConversationTrend(range: DateRange, granularity: TrendGranularity): TrendPoint[] {
+  enterDemoMode();
+  const inbox = readInbox();
+  const perBucket = new Map<string, Set<string>>();
+  for (const message of rangedMessages(inbox, range)) {
+    const key = bucketOf(message.timestamp, granularity).key;
+    const set = perBucket.get(key) ?? new Set<string>();
+    set.add(message.conversationId);
+    perBucket.set(key, set);
+  }
+  return buildBuckets(range, granularity).map((bucket) => ({
+    bucket: bucket.key,
+    timestamp: bucket.timestamp,
+    count: perBucket.get(bucket.key)?.size ?? 0
+  }));
+}
+
+export function demoMessageTrend(range: DateRange, granularity: TrendGranularity): TrendPoint[] {
+  enterDemoMode();
+  const inbox = readInbox();
+  const perBucket = new Map<string, TrendPoint>();
+  for (const bucket of buildBuckets(range, granularity)) {
+    perBucket.set(bucket.key, { bucket: bucket.key, timestamp: bucket.timestamp, count: 0, inbound: 0, outbound: 0 });
+  }
+  for (const message of rangedMessages(inbox, range)) {
+    const point = perBucket.get(bucketOf(message.timestamp, granularity).key);
+    if (!point) continue;
+    point.count += 1;
+    if (message.sender === 'contact') point.inbound = (point.inbound ?? 0) + 1;
+    else point.outbound = (point.outbound ?? 0) + 1;
+  }
+  return [...perBucket.values()].sort((a, b) => a.timestamp - b.timestamp);
+}
+
+export function demoChannelDistribution(range: DateRange): ChannelSlice[] {
+  enterDemoMode();
+  const inbox = readInbox();
+  const active = activeConversationIds(inbox, range);
+  const counts = new Map<ChannelPlatform, number>();
+  let total = 0;
+  for (const conversation of inbox.conversations) {
+    if (!active.has(conversation.id) || !conversation.platform) continue;
+    counts.set(conversation.platform, (counts.get(conversation.platform) ?? 0) + 1);
+    total += 1;
+  }
+  return [...counts.entries()]
+    .map(([platform, conversations]) => ({
+      platform,
+      conversations,
+      percent: total ? Math.round((conversations / total) * 1000) / 10 : 0
+    }))
+    .sort((a, b) => b.conversations - a.conversations || a.platform.localeCompare(b.platform));
+}
+
+export function demoResponseTime(range: DateRange): ResponseTimeStats {
+  enterDemoMode();
+  const inbox = readInbox();
+  const sorted = replyLatencies(inbox, range).sort((a, b) => a - b);
+  return {
+    averageMs: mean(sorted),
+    medianMs: percentile(sorted, 50),
+    p90Ms: percentile(sorted, 90),
+    p95Ms: percentile(sorted, 95),
+    samples: sorted.length,
+    targetMinutes: RESPONSE_TARGET_MINUTES
+  };
+}
+
+const DEMO_AGENTS = [
+  { agentId: 'agent-1', name: 'Neema K.' },
+  { agentId: 'agent-2', name: 'Joseph M.' }
+];
+
+/** Deterministic split of the ranged conversations across two demo staff members. */
+export function demoAgentPerformance(range: DateRange): AgentPerformance[] {
+  enterDemoMode();
+  const inbox = readInbox();
+  const active = [...activeConversationIds(inbox, range)].sort();
+  const messages = rangedMessages(inbox, range);
+  return DEMO_AGENTS.map((agent, index) => {
+    const owned = new Set(active.filter((_, position) => position % 2 === index));
+    return {
+      agentId: agent.agentId,
+      name: agent.name,
+      conversations: owned.size,
+      messages: messages.filter((message) => owned.has(message.conversationId)).length,
+      averageResponseMs: mean(replyLatencies(inbox, range, owned)),
+      satisfaction: owned.size ? (index === 0 ? 4.8 : 4.6) : null
+    };
+  });
+}
+
+export function demoTopCustomers(range: DateRange, limit = 5): TopCustomer[] {
+  enterDemoMode();
+  const inbox = readInbox();
+  const messages = rangedMessages(inbox, range);
+  const rows: TopCustomer[] = [];
+  for (const record of readCustomers()) {
+    const ids = new Set(
+      record.phone ? inbox.conversations.filter((c) => c.contactPhone === record.phone).map((c) => c.id) : []
+    );
+    if (!ids.size) continue;
+    const own = messages.filter((message) => ids.has(message.conversationId));
+    if (!own.length) continue;
+    const timestamps = own.map((message) => message.timestamp).sort((a, b) => a - b);
+    rows.push({
+      id: record.id,
+      name: record.name,
+      conversations: ids.size,
+      messages: own.length,
+      lastContactAt: timestamps[timestamps.length - 1] ?? null
+    });
+  }
+  return rows
+    .sort((a, b) => b.messages - a.messages || b.conversations - a.conversations || a.name.localeCompare(b.name))
+    .slice(0, Math.max(1, limit));
 }
