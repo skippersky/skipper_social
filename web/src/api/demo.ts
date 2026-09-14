@@ -30,7 +30,11 @@ import type {
   UploadResult,
   UsageRecord,
   UsageSnapshot,
-  WebhookStatus
+  WebhookStatus,
+  AppNotification,
+  NotificationPreferences,
+  NotificationType,
+  PagedNotifications
 } from '../types';
 
 const MODE_KEY = 'ks-demo-mode';
@@ -1021,4 +1025,295 @@ export function demoTopCustomers(range: DateRange, limit = 5): TopCustomer[] {
   return rows
     .sort((a, b) => b.messages - a.messages || b.conversations - a.conversations || a.name.localeCompare(b.name))
     .slice(0, Math.max(1, limit));
+}
+/* Sprint 9: notification centre demo directory. Message rows are derived from the
+   seeded inbox so the bell badge and the conversation list always agree. */
+
+const NOTIFICATIONS_KEY = 'ks-demo-notifications';
+const NOTIFY_PREFS_KEY = 'ks-demo-notification-prefs';
+
+interface DemoNotificationRecord {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: number;
+  link?: string;
+  refId?: string;
+}
+
+export interface DemoNotificationListParams {
+  type?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  message: true,
+  conversation: true,
+  customer: true,
+  system: true,
+  browserPush: false,
+  sound: true
+};
+
+function seedNotifications(): DemoNotificationRecord[] {
+  const now = Date.now();
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const records: DemoNotificationRecord[] = [];
+
+  for (const conversation of demoInboxConversations()) {
+    if (conversation.unreadCount <= 0) continue;
+    records.push({
+      id: 'ntf-inbox-' + conversation.id,
+      type: 'message',
+      title: conversation.contactName,
+      body: conversation.lastMessage,
+      read: false,
+      createdAt: conversation.lastMessageTime,
+      link: '/dashboard/conversations?focus=' + conversation.id,
+      refId: conversation.id
+    });
+  }
+
+  records.push(
+    {
+      id: 'ntf-2',
+      type: 'conversation',
+      title: 'Conversation assigned',
+      body: 'Neema Wanjiru was assigned to you after 41 minutes without a reply.',
+      read: false,
+      createdAt: now - 55 * minute,
+      link: '/dashboard/conversations',
+      refId: 'c-2'
+    },
+    {
+      id: 'ntf-3',
+      type: 'customer',
+      title: 'New customer',
+      body: 'Daniel Kimaro was added to the directory.',
+      read: false,
+      createdAt: now - 5 * hour,
+      link: '/dashboard/customers/u-8',
+      refId: 'u-8'
+    },
+    {
+      id: 'ntf-4',
+      type: 'customer',
+      title: 'Tag changed',
+      body: 'Kofi Mensah moved from Lead to Wholesale.',
+      read: true,
+      createdAt: now - 9 * hour,
+      link: '/dashboard/customers/u-5',
+      refId: 'u-5'
+    },
+    {
+      id: 'ntf-5',
+      type: 'system',
+      title: 'WhatsApp channel needs re-auth',
+      body: 'The access token for +255 712 345 678 expires in 3 days.',
+      read: true,
+      createdAt: now - 26 * hour,
+      link: '/dashboard/channels',
+      refId: 'ch-whatsapp'
+    },
+    {
+      id: 'ntf-6',
+      type: 'message',
+      title: 'Grace Adeyemi',
+      body: 'Can you send the wholesale price list again?',
+      read: true,
+      createdAt: now - 30 * hour,
+      link: '/dashboard/conversations',
+      refId: 'c-3'
+    },
+    {
+      id: 'ntf-7',
+      type: 'system',
+      title: 'Analytics now available',
+      body: 'Sprint 8 added trends, channel mix and response times.',
+      read: true,
+      createdAt: now - 2 * day,
+      link: '/dashboard/analytics'
+    },
+    {
+      id: 'ntf-8',
+      type: 'conversation',
+      title: 'Conversation archived',
+      body: 'Baraka Okonkwo was archived after 6 days of inactivity.',
+      read: true,
+      createdAt: now - 3 * day,
+      link: '/dashboard/conversations',
+      refId: 'c-6'
+    },
+    {
+      id: 'ntf-9',
+      type: 'system',
+      title: 'Scheduled maintenance',
+      body: 'Publishing will be paused on Sunday 02:00 to 03:00 EAT.',
+      read: true,
+      createdAt: now - 4 * day
+    },
+    {
+      id: 'ntf-10',
+      type: 'customer',
+      title: 'New customer',
+      body: 'Salma Hassan was added after the trade fair import.',
+      read: true,
+      createdAt: now - 5 * day,
+      link: '/dashboard/customers/u-7',
+      refId: 'u-7'
+    }
+  );
+
+  return records.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+function writeNotifications(list: DemoNotificationRecord[]): void {
+  try {
+    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(list));
+  } catch {
+    /* private mode */
+  }
+}
+
+function readNotificationRecords(): DemoNotificationRecord[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(NOTIFICATIONS_KEY) ?? 'null') as
+      | DemoNotificationRecord[]
+      | null;
+    if (parsed && Array.isArray(parsed)) return parsed;
+  } catch {
+    /* corrupted state falls back to a fresh seed */
+  }
+  const seeded = seedNotifications();
+  writeNotifications(seeded);
+  return seeded;
+}
+
+function hydrateNotification(record: DemoNotificationRecord): AppNotification {
+  return { ...record, demo: true };
+}
+
+export function demoNotifications(params?: DemoNotificationListParams): PagedNotifications {
+  enterDemoMode();
+  const limit = params?.limit ?? 20;
+  const offset = params?.offset ?? 0;
+  const matches = readNotificationRecords()
+    .filter((record) => {
+      if (params?.type && params.type !== 'all' && record.type !== params.type) return false;
+      if (params?.status === 'read' && !record.read) return false;
+      if (params?.status === 'unread' && record.read) return false;
+      return true;
+    })
+    .sort((a, b) => b.createdAt - a.createdAt);
+  const slice = matches.slice(offset, offset + limit);
+  return {
+    notifications: slice.map(hydrateNotification),
+    hasMore: offset + slice.length < matches.length,
+    total: matches.length
+  };
+}
+
+export function demoNotificationById(id: string): AppNotification {
+  enterDemoMode();
+  const record = readNotificationRecords().find((candidate) => candidate.id === id);
+  if (!record) throw new ApiError('NOT_FOUND', 'notification not found');
+  return hydrateNotification(record);
+}
+
+export function demoMarkNotificationRead(id: string): AppNotification {
+  enterDemoMode();
+  const list = readNotificationRecords();
+  const record = list.find((candidate) => candidate.id === id);
+  if (!record) throw new ApiError('NOT_FOUND', 'notification not found');
+  record.read = true;
+  writeNotifications(list);
+  return hydrateNotification(record);
+}
+
+export function demoMarkAllNotificationsRead(): number {
+  enterDemoMode();
+  const list = readNotificationRecords();
+  const changed = list.filter((record) => !record.read).length;
+  for (const record of list) record.read = true;
+  writeNotifications(list);
+  return changed;
+}
+
+export function demoDeleteNotification(id: string): void {
+  enterDemoMode();
+  const list = readNotificationRecords();
+  const next = list.filter((record) => record.id !== id);
+  if (next.length === list.length) throw new ApiError('NOT_FOUND', 'notification not found');
+  writeNotifications(next);
+}
+
+export function demoDeleteReadNotifications(): number {
+  enterDemoMode();
+  const list = readNotificationRecords();
+  const next = list.filter((record) => !record.read);
+  writeNotifications(next);
+  return list.length - next.length;
+}
+
+export function demoUnreadNotificationCount(): number {
+  enterDemoMode();
+  return readNotificationRecords().filter((record) => !record.read).length;
+}
+
+export function demoNotificationPreferences(): NotificationPreferences {
+  enterDemoMode();
+  try {
+    const parsed = JSON.parse(localStorage.getItem(NOTIFY_PREFS_KEY) ?? 'null') as
+      | Partial<NotificationPreferences>
+      | null;
+    if (parsed && typeof parsed === 'object') {
+      return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...parsed };
+    }
+  } catch {
+    /* corrupted state falls back to defaults */
+  }
+  return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+}
+
+export function demoUpdateNotificationPreferences(
+  patch: Partial<NotificationPreferences>
+): NotificationPreferences {
+  enterDemoMode();
+  const next = { ...demoNotificationPreferences(), ...patch };
+  try {
+    localStorage.setItem(NOTIFY_PREFS_KEY, JSON.stringify(next));
+  } catch {
+    /* private mode */
+  }
+  return next;
+}
+
+/** Offline stand-in for a realtime push, used by the demo mode toast preview. */
+export function demoPushNotification(
+  input: Omit<AppNotification, 'id' | 'createdAt' | 'read' | 'demo'> & {
+    id?: string;
+    createdAt?: number;
+  }
+): AppNotification {
+  enterDemoMode();
+  const list = readNotificationRecords();
+  const record: DemoNotificationRecord = {
+    id: input.id ?? 'ntf-live-' + Date.now(),
+    type: input.type,
+    title: input.title,
+    body: input.body,
+    read: false,
+    createdAt: input.createdAt ?? Date.now(),
+    link: input.link,
+    refId: input.refId
+  };
+  list.unshift(record);
+  writeNotifications(list);
+  return hydrateNotification(record);
 }

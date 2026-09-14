@@ -343,3 +343,63 @@ export interface TopCustomer {
   messages: number;
   lastContactAt: number | null;
 }
+
+/* Sprint 9: notification and message centre */
+
+export type NotificationType = 'message' | 'conversation' | 'customer' | 'system';
+export type NotificationTypeFilter = 'all' | NotificationType;
+export type NotificationReadFilter = 'all' | 'read' | 'unread';
+
+export const NOTIFICATION_TYPES: NotificationType[] = [
+  'message',
+  'conversation',
+  'customer',
+  'system'
+];
+
+/**
+ * A single business event surfaced to the user. Named AppNotification because
+ * the browser push API already owns the global Notification identifier.
+ */
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  read: boolean;
+  /** Epoch milliseconds. */
+  createdAt: number;
+  /** Route the click handler navigates to; omitted for purely informational rows. */
+  link?: string;
+  /** Identifier of the entity the notification refers to. */
+  refId?: string;
+  /** True when the row comes from the offline demo directory. */
+  demo?: boolean;
+}
+
+export interface NotificationFilters {
+  type: NotificationTypeFilter;
+  status: NotificationReadFilter;
+}
+
+export interface PagedNotifications {
+  notifications: AppNotification[];
+  hasMore: boolean;
+  total: number;
+}
+
+/** Per-category delivery switches; in-app delivery is always on. */
+export interface NotificationPreferences {
+  message: boolean;
+  conversation: boolean;
+  customer: boolean;
+  system: boolean;
+  browserPush: boolean;
+  sound: boolean;
+}
+
+export type NotificationConnectionStatus =
+  | 'connecting'
+  | 'connected'
+  | 'disconnected'
+  | 'error';

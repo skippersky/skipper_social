@@ -1,14 +1,28 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import LanguageSwitcher from './components/LanguageSwitcher.vue';
+import NotificationBell from './components/notification/NotificationBell.vue';
+import NotificationToast from './components/notification/NotificationToast.vue';
 import UserMenu from './components/UserMenu.vue';
 import { useI18nStore } from './i18n';
 import { useAuthStore } from './stores/auth';
+import { useNotificationSocket } from './composables/useNotificationSocket';
 
 const route = useRoute();
 const i18n = useI18nStore();
 const auth = useAuthStore();
+const notifications = useNotificationSocket();
+
+/* The live feed follows the session: attach on login, detach on logout. */
+watch(
+  () => auth.isAuthenticated,
+  (value) => {
+    if (value) notifications.connect();
+    else notifications.disconnect();
+  },
+  { immediate: true }
+);
 const showTabbar = computed(() => ['/editor', '/drafts'].includes(route.path));
 // Landing pages ship their own header/footer chrome.
 const LANDING_PATHS = ['/', '/pricing', '/privacy', '/terms'];
@@ -25,12 +39,14 @@ const showChrome = computed(() => !LANDING_PATHS.includes(route.path));
           <span class="app-header__name">KiliSocial</span>
         </router-link>
         <div class="app-header__actions">
+          <NotificationBell v-if="auth.isAuthenticated" />
           <LanguageSwitcher />
           <UserMenu />
         </div>
       </div>
     </header>
     <router-view />
+    <NotificationToast />
     <van-tabbar v-if="showTabbar" route>
       <van-tabbar-item to="/editor" icon="edit">{{ i18n.t('nav.editor') }}</van-tabbar-item>
       <van-tabbar-item to="/drafts" icon="notes">{{ i18n.t('nav.drafts') }}</van-tabbar-item>

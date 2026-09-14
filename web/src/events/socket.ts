@@ -1,15 +1,20 @@
-import type { Conversation, Message } from '../types';
+import type { AppNotification, Conversation, Message } from '../types';
 
 export const SOCKET_NEW_MESSAGE = 'socket:new-message';
 export const SOCKET_MESSAGE_READ = 'socket:message-read';
 export const SOCKET_CONVERSATION_UPDATED = 'socket:conversation-updated';
 export const SOCKET_TYPING = 'socket:typing-indicator';
+/* Sprint 9: notification fan-out shares this bus and the same socket. */
+export const SOCKET_NOTIFICATION = 'socket:notification';
+export const SOCKET_NOTIFICATION_READ = 'socket:notification-read';
 
 export type SocketEventType =
   | typeof SOCKET_NEW_MESSAGE
   | typeof SOCKET_MESSAGE_READ
   | typeof SOCKET_CONVERSATION_UPDATED
-  | typeof SOCKET_TYPING;
+  | typeof SOCKET_TYPING
+  | typeof SOCKET_NOTIFICATION
+  | typeof SOCKET_NOTIFICATION_READ;
 
 export type SocketEvent =
   | { type: typeof SOCKET_NEW_MESSAGE; message: Message }
@@ -19,7 +24,9 @@ export type SocketEvent =
       conversationId: string;
       patch: Partial<Conversation>;
     }
-  | { type: typeof SOCKET_TYPING; conversationId: string; isTyping: boolean };
+  | { type: typeof SOCKET_TYPING; conversationId: string; isTyping: boolean }
+  | { type: typeof SOCKET_NOTIFICATION; notification: AppNotification }
+  | { type: typeof SOCKET_NOTIFICATION_READ; notificationId: string; read: boolean };
 
 type SocketEventHandler = (event: SocketEvent) => void;
 

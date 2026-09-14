@@ -5,9 +5,11 @@ import {
   SOCKET_MESSAGE_READ,
   SOCKET_NEW_MESSAGE,
   SOCKET_TYPING,
+  SOCKET_NOTIFICATION,
+  SOCKET_NOTIFICATION_READ,
   socketBus
 } from '../events/socket';
-import type { Conversation, Message } from '../types';
+import type { AppNotification, Conversation, Message } from '../types';
 
 export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
 
@@ -169,6 +171,25 @@ export class InboxSocketClient {
       case 'typing_indicator': {
         const data = parsed.data as { conversationId: string; isTyping: boolean };
         socketBus.emit({ type: SOCKET_TYPING, conversationId: data.conversationId, isTyping: data.isTyping });
+        break;
+      }
+      /* Sprint 9: notification frames ride the same socket as inbox events. */
+      case 'notification': {
+        const data = parsed.data as AppNotification;
+        if (data && typeof data.id === 'string') {
+          socketBus.emit({ type: SOCKET_NOTIFICATION, notification: data });
+        }
+        break;
+      }
+      case 'notification_read': {
+        const data = parsed.data as { notificationId: string; read?: boolean };
+        if (data && typeof data.notificationId === 'string') {
+          socketBus.emit({
+            type: SOCKET_NOTIFICATION_READ,
+            notificationId: data.notificationId,
+            read: data.read !== false
+          });
+        }
         break;
       }
       default:

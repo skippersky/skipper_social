@@ -25,6 +25,8 @@ describe('router', () => {
       '/checkout/demo',
       '/checkout/success',
       '/checkout/cancel',
+      '/dashboard/notifications',
+      '/dashboard/notifications/preferences',
       '/dashboard/channels',
       '/dashboard/channels/connect/:platform',
       '/auth/callback/:platform'

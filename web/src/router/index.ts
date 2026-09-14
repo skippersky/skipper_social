@@ -22,6 +22,8 @@ import CheckoutDemoView from '../views/checkout/demo.vue';
 import ConversationsView from '../views/dashboard/conversations/index.vue';
 import CustomersView from '../views/dashboard/customers/index.vue';
 import AnalyticsView from '../views/dashboard/analytics/index.vue';
+import NotificationsView from '../views/dashboard/notifications/index.vue';
+import NotificationPreferencesView from '../views/dashboard/notifications/preferences.vue';
 import CustomerDetailView from '../views/dashboard/customers/detail.vue';
 import ChannelsView from '../views/dashboard/channels/index.vue';
 import ChannelConnectView from '../views/dashboard/channels/connect.vue';
@@ -78,6 +80,8 @@ export const router = createRouter({
     { path: '/dashboard/customers', name: 'customers', component: CustomersView },
     { path: '/dashboard/customers/:id', name: 'customer-detail', component: CustomerDetailView },
     { path: '/dashboard/analytics', name: 'analytics', component: AnalyticsView },
+    { path: '/dashboard/notifications', name: 'notifications', component: NotificationsView },
+    { path: '/dashboard/notifications/preferences', name: 'notification-preferences', component: NotificationPreferencesView },
     { path: '/dashboard/channels', name: 'channels', component: ChannelsView },
     { path: '/dashboard/channels/connect/:platform', name: 'channel-connect', component: ChannelConnectView },
     { path: '/auth/callback/:platform', name: 'auth-callback', component: AuthCallbackView }

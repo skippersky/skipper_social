@@ -15,7 +15,8 @@ async function mountHome() {
       { path: '/drafts', component: { template: '<div />' } },
       { path: '/dashboard/customers', component: { template: '<div />' } },
       { path: '/dashboard/channels', component: { template: '<div />' } },
-      { path: '/dashboard/analytics', component: { template: '<div />' } }
+      { path: '/dashboard/analytics', component: { template: '<div />' } },
+      { path: '/dashboard/notifications', component: { template: '<div />' } }
     ]
   });
   await router.push('/');
@@ -33,6 +34,8 @@ describe('HomeView', () => {
     expect(wrapper.text()).toContain('Drafts');
     expect(wrapper.text()).toContain('Channels');
     expect(wrapper.text()).toContain('Analytics');
+    expect(wrapper.text()).toContain('Notifications');
+    expect(wrapper.text()).toContain('Unread messages, assignments and channel alerts');
     expect(wrapper.text()).toContain('under review');
   });
 
@@ -46,5 +49,6 @@ describe('HomeView', () => {
     expect(hrefs).toContain('/dashboard/customers');
     expect(hrefs).toContain('/dashboard/channels');
     expect(hrefs).toContain('/dashboard/analytics');
+    expect(hrefs).toContain('/dashboard/notifications');
   });
 });
