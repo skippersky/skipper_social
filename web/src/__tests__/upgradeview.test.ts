@@ -12,7 +12,7 @@ vi.mock('vant', async (importOriginal) => {
   return { ...actual, showToast: vi.fn(), showConfirmDialog: vi.fn().mockResolvedValue('confirm') };
 });
 
-async function mountView() {
+async function mountView(query = '') {
   const pinia = createPinia();
   setActivePinia(pinia);
   const router = createRouter({
@@ -23,7 +23,7 @@ async function mountView() {
       { path: '/checkout/demo', component: { template: '<div />' } }
     ]
   });
-  await router.push('/dashboard/subscription/upgrade');
+  await router.push('/dashboard/subscription/upgrade' + query);
   await router.isReady();
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
   const wrapper = mount(UpgradeView, { global: { plugins: [pinia, router, Vant] } });
@@ -75,5 +75,17 @@ describe('Plan upgrade page', () => {
     const cta = wrapper.find('.upgrade-page__cta');
     expect(cta.text()).toBe('Current plan');
     expect((cta.element as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('preselects the plan requested through the query string', async () => {
+    const { wrapper } = await mountView('?plan=pro');
+
+    expect(wrapper.find('.plan-card--selected .plan-card__name').text()).toBe('Pro');
+  });
+
+  it('ignores an unknown plan query value and falls back to the first upgrade', async () => {
+    const { wrapper } = await mountView('?plan=enterprise');
+
+    expect(wrapper.find('.plan-card--selected .plan-card__name').text()).toBe('Basic');
   });
 });

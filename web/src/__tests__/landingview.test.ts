@@ -44,6 +44,41 @@ describe('Landing page', () => {
     expect(wrapper.find('.plans-cta a').attributes('href')).toBe('/pricing');
   });
 
+  it('turns each pricing preview card into a link that carries the chosen plan to the pricing page', async () => {
+    const wrapper = await mountLanding();
+
+    const minis = wrapper.findAll('a.plan-mini');
+    expect(minis).toHaveLength(3);
+    expect(minis.map((m) => m.attributes('href'))).toEqual([
+      '/pricing?plan=free',
+      '/pricing?plan=basic',
+      '/pricing?plan=pro'
+    ]);
+    expect(minis[1].attributes('aria-label')).toBe('View Basic plan');
+  });
+
+  it('navigates to the pricing page with the plan query when a preview card is clicked', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: LandingIndex },
+        { path: '/register', component: { template: '<div />' } },
+        { path: '/pricing', component: { template: '<div />' } }
+      ]
+    });
+    await router.push('/');
+    await router.isReady();
+    const wrapper = mount(LandingIndex, {
+      global: { plugins: [createPinia(), router, Vant] }
+    });
+
+    await wrapper.findAll('a.plan-mini')[2].trigger('click');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(router.currentRoute.value.path).toBe('/pricing');
+    expect(router.currentRoute.value.query.plan).toBe('pro');
+  });
+
   it('lists six FAQs in the collapse', async () => {
     const wrapper = await mountLanding();
 

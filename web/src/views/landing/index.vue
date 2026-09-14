@@ -15,6 +15,11 @@ const faqs = computed(() =>
     a: i18n.t(`landing.a${n}`)
   }))
 );
+const planMinis = computed(() => [
+  { key: 'free', name: 'Free', price: '$0', desc: i18n.t('pricing.freeDesc'), featured: false },
+  { key: 'basic', name: 'Basic', price: '$9', desc: i18n.t('pricing.basicDesc'), featured: true },
+  { key: 'pro', name: 'Pro', price: '$29', desc: i18n.t('pricing.proDesc'), featured: false }
+]);
 </script>
 
 <template>
@@ -109,21 +114,18 @@ const faqs = computed(() =>
       <div class="section__inner">
         <h2 class="section__title">{{ i18n.t('landing.pricingTitle') }}</h2>
         <div class="plans-preview">
-          <article class="plan-mini">
-            <h3 class="plan-mini__name">Free</h3>
-            <p class="plan-mini__price">$0<span>{{ i18n.t('pricing.month') }}</span></p>
-            <p class="plan-mini__desc">{{ i18n.t('pricing.freeDesc') }}</p>
-          </article>
-          <article class="plan-mini plan-mini--featured">
-            <h3 class="plan-mini__name">Basic</h3>
-            <p class="plan-mini__price">$9<span>{{ i18n.t('pricing.month') }}</span></p>
-            <p class="plan-mini__desc">{{ i18n.t('pricing.basicDesc') }}</p>
-          </article>
-          <article class="plan-mini">
-            <h3 class="plan-mini__name">Pro</h3>
-            <p class="plan-mini__price">$29<span>{{ i18n.t('pricing.month') }}</span></p>
-            <p class="plan-mini__desc">{{ i18n.t('pricing.proDesc') }}</p>
-          </article>
+          <router-link
+            v-for="mini in planMinis"
+            :key="mini.key"
+            class="plan-mini"
+            :class="{ 'plan-mini--featured': mini.featured }"
+            :to="{ path: '/pricing', query: { plan: mini.key } }"
+            :aria-label="i18n.t('pricing.viewPlan', { plan: mini.name })"
+          >
+            <h3 class="plan-mini__name">{{ mini.name }}</h3>
+            <p class="plan-mini__price">{{ mini.price }}<span>{{ i18n.t('pricing.month') }}</span></p>
+            <p class="plan-mini__desc">{{ mini.desc }}</p>
+          </router-link>
         </div>
         <div class="plans-cta">
           <router-link to="/pricing" class="btn btn--ghost">{{ i18n.t('landing.pricingCta') }}</router-link>
@@ -443,6 +445,20 @@ const faqs = computed(() =>
   box-shadow: var(--ks-shadow-card);
   padding: 26px 24px;
   text-align: center;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform var(--ks-motion-normal) ease-in-out,
+    box-shadow var(--ks-motion-normal) ease-in-out;
+}
+.plan-mini:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ks-shadow-float);
+}
+.plan-mini:focus-visible {
+  outline: 3px solid var(--ks-accent);
+  outline-offset: 3px;
 }
 .plan-mini--featured {
   border: 2px solid var(--ks-primary);

@@ -1,19 +1,28 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { usePageMeta } from '../../composables/usePageMeta';
 import { useI18nStore } from '../../i18n';
 import { useAuthStore } from '../../stores/auth';
 
 const i18n = useI18nStore();
 const auth = useAuthStore();
+const route = useRoute();
+const router = useRouter();
 
 usePageMeta(i18n.t('pricing.metaTitle'), i18n.t('pricing.metaDescription'));
 
+const PLAN_KEYS = ['free', 'basic', 'pro'] as const;
+type PlanKey = (typeof PLAN_KEYS)[number];
+
+function isPlanKey(value: unknown): value is PlanKey {
+  return typeof value === 'string' && (PLAN_KEYS as readonly string[]).includes(value);
+}
+
 const plans = computed(() => [
-  { key: 'free', name: 'Free', price: '$0', desc: i18n.t('pricing.freeDesc'), featured: false },
-  { key: 'basic', name: 'Basic', price: '$9', desc: i18n.t('pricing.basicDesc'), featured: true },
-  { key: 'pro', name: 'Pro', price: '$29', desc: i18n.t('pricing.proDesc'), featured: false }
+  { key: 'free' as PlanKey, name: 'Free', price: '$0', desc: i18n.t('pricing.freeDesc'), featured: false },
+  { key: 'basic' as PlanKey, name: 'Basic', price: '$9', desc: i18n.t('pricing.basicDesc'), featured: true },
+  { key: 'pro' as PlanKey, name: 'Pro', price: '$29', desc: i18n.t('pricing.proDesc'), featured: false }
 ]);
 
 const rows = computed(() => [
@@ -28,10 +37,31 @@ const rows = computed(() => [
 ]);
 
 const currentTier = computed(() => auth.user?.subscriptionTier ?? null);
-const router = useRouter();
 
-function onChoose(): void {
-  void router.push('/dashboard/subscription/upgrade');
+/** Plan pre-selected from the landing page preview via /pricing?plan=<key>. */
+const highlighted = computed(() => (isPlanKey(route.query.plan) ? route.query.plan : null));
+
+function isActionable(key: PlanKey): boolean {
+  return currentTier.value !== key;
+}
+
+function registerTarget(key: PlanKey) {
+  return { path: '/register', query: { plan: key } };
+}
+
+function onChoose(key: PlanKey): void {
+  if (!isActionable(key)) return;
+  if (!auth.isAuthenticated) {
+    void router.push(registerTarget(key));
+    return;
+  }
+  void router.push({ path: '/dashboard/subscription/upgrade', query: { plan: key } });
+}
+
+function onCardKeydown(event: KeyboardEvent, key: PlanKey): void {
+  if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+  event.preventDefault();
+  onChoose(key);
 }
 </script>
 
@@ -46,7 +76,19 @@ function onChoose(): void {
         v-for="(plan, planIdx) in plans"
         :key="plan.key"
         class="plan"
-        :class="{ 'plan--featured': plan.featured, 'plan--current': currentTier === plan.key }"
+        :class="{
+          'plan--featured': plan.featured,
+          'plan--current': currentTier === plan.key,
+          'plan--highlight': highlighted === plan.key,
+          'plan--interactive': isActionable(plan.key)
+        }"
+        :role="isActionable(plan.key) ? 'button' : undefined"
+        :tabindex="isActionable(plan.key) ? 0 : undefined"
+        :aria-label="isActionable(plan.key) ? i18n.t('pricing.viewPlan', { plan: plan.name }) : undefined"
+        :aria-disabled="isActionable(plan.key) ? undefined : 'true'"
+        :data-plan="plan.key"
+        @click="onChoose(plan.key)"
+        @keydown="onCardKeydown($event, plan.key)"
       >
         <p v-if="currentTier === plan.key" class="plan__badge">{{ i18n.t('pricing.current') }}</p>
         <h2 class="plan__name">{{ plan.name }}</h2>
@@ -58,7 +100,12 @@ function onChoose(): void {
             <span class="plan__row-value">{{ row.cells[planIdx] }}</span>
           </li>
         </ul>
-        <router-link v-if="!auth.isAuthenticated" to="/register" class="plan__cta">
+        <router-link
+          v-if="!auth.isAuthenticated"
+          :to="registerTarget(plan.key)"
+          class="plan__cta"
+          @click.stop
+        >
           {{ i18n.t('pricing.choose') }}
         </router-link>
         <button
@@ -66,7 +113,7 @@ function onChoose(): void {
           type="button"
           class="plan__cta"
           :disabled="currentTier === plan.key"
-          @click="onChoose"
+          @click.stop="onChoose(plan.key)"
         >
           {{ currentTier === plan.key ? i18n.t('pricing.current') : i18n.t('pricing.upgrade') }}
         </button>
@@ -110,6 +157,10 @@ function onChoose(): void {
   padding: 28px 26px;
   display: flex;
   flex-direction: column;
+  transition:
+    transform var(--ks-motion-normal) ease-in-out,
+    box-shadow var(--ks-motion-normal) ease-in-out,
+    outline-color var(--ks-motion-fast) ease-in-out;
 }
 .plan--featured {
   border: 2px solid var(--ks-primary);
@@ -118,6 +169,21 @@ function onChoose(): void {
 .plan--current {
   outline: 2px solid var(--ks-accent);
   outline-offset: 2px;
+}
+.plan--highlight {
+  outline: 3px solid var(--ks-accent);
+  outline-offset: 3px;
+}
+.plan--interactive {
+  cursor: pointer;
+}
+.plan--interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ks-shadow-float);
+}
+.plan--interactive:focus-visible {
+  outline: 3px solid var(--ks-accent);
+  outline-offset: 3px;
 }
 .plan__badge {
   position: absolute;
