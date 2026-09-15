@@ -34,7 +34,14 @@ import type {
   AppNotification,
   NotificationPreferences,
   NotificationType,
-  PagedNotifications
+  PagedNotifications,
+  LoginDevice,
+  SecuritySettings,
+  SecurityUpdateRequest,
+  SystemPreferences,
+  ThemeMode,
+  ChannelAccount,
+  ChannelTestResult
 } from '../types';
 
 const MODE_KEY = 'ks-demo-mode';
@@ -1316,4 +1323,253 @@ export function demoPushNotification(
   list.unshift(record);
   writeNotifications(list);
   return hydrateNotification(record);
+}
+
+/* Sprint 10: settings demo records */
+
+const SETTINGS_PROFILE_KEY = 'ks-demo-settings-profile';
+const SETTINGS_SECURITY_KEY = 'ks-demo-settings-security';
+const SETTINGS_PREFS_KEY = 'ks-demo-settings-prefs';
+
+/** Timezones offered by the preferences selector, target market first. */
+export const DEMO_TIMEZONES: string[] = [
+  'Africa/Dar_es_Salaam',
+  'Africa/Nairobi',
+  'Africa/Kampala',
+  'Africa/Lagos',
+  'Africa/Johannesburg',
+  'Asia/Shanghai',
+  'Europe/Paris',
+  'Europe/London',
+  'UTC'
+];
+
+/** Profile fields the auth record does not carry yet (bio, uploaded avatar). */
+export interface DemoProfileExtras {
+  bio: string;
+  avatarUrl: string;
+}
+
+export const DEFAULT_PROFILE_EXTRAS: DemoProfileExtras = { bio: '', avatarUrl: '' };
+
+/** Preference fields owned by settings rather than by the auth user record. */
+export interface DemoPreferenceRecord {
+  theme: ThemeMode;
+  soundEnabled: boolean;
+  desktopNotifications: boolean;
+}
+
+export const DEFAULT_PREFERENCE_RECORD: DemoPreferenceRecord = {
+  theme: 'light',
+  soundEnabled: true,
+  desktopNotifications: false
+};
+
+/** Neutral starting state for the settings store before the first fetch. */
+export const DEFAULT_SYSTEM_PREFERENCES: SystemPreferences = {
+  language: 'en',
+  timezone: 'Africa/Dar_es_Salaam',
+  theme: 'light',
+  soundEnabled: true,
+  desktopNotifications: false
+};
+
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeJson(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* private mode */
+  }
+}
+
+export function demoProfileExtras(): DemoProfileExtras {
+  enterDemoMode();
+  return { ...DEFAULT_PROFILE_EXTRAS, ...(readJson<DemoProfileExtras>(SETTINGS_PROFILE_KEY) ?? {}) };
+}
+
+export function demoSaveProfileExtras(patch: Partial<DemoProfileExtras>): DemoProfileExtras {
+  enterDemoMode();
+  const next = { ...demoProfileExtras(), ...patch };
+  writeJson(SETTINGS_PROFILE_KEY, next);
+  return next;
+}
+
+export function demoPreferences(): DemoPreferenceRecord {
+  enterDemoMode();
+  return {
+    ...DEFAULT_PREFERENCE_RECORD,
+    ...(readJson<DemoPreferenceRecord>(SETTINGS_PREFS_KEY) ?? {})
+  };
+}
+
+export function demoSavePreferences(patch: Partial<DemoPreferenceRecord>): DemoPreferenceRecord {
+  enterDemoMode();
+  const next = { ...demoPreferences(), ...patch };
+  writeJson(SETTINGS_PREFS_KEY, next);
+  return next;
+}
+
+const DEMO_DEVICES: LoginDevice[] = [
+  {
+    id: 'device-current',
+    name: 'Chrome - Windows',
+    location: 'Dar es Salaam, TZ',
+    lastActiveAt: 0,
+    current: true
+  },
+  {
+    id: 'device-phone',
+    name: 'Safari - iPhone',
+    location: 'Nairobi, KE',
+    lastActiveAt: 0,
+    current: false
+  }
+];
+
+interface DemoSecurityRecord {
+  twoFactorEnabled: boolean;
+  lastPasswordChangedAt?: number;
+  revokedDeviceIds: string[];
+}
+
+const DEFAULT_SECURITY_RECORD: DemoSecurityRecord = {
+  twoFactorEnabled: false,
+  revokedDeviceIds: []
+};
+
+function demoSecurityRecord(): DemoSecurityRecord {
+  return { ...DEFAULT_SECURITY_RECORD, ...(readJson<DemoSecurityRecord>(SETTINGS_SECURITY_KEY) ?? {}) };
+}
+
+function saveSecurityRecord(record: DemoSecurityRecord): DemoSecurityRecord {
+  writeJson(SETTINGS_SECURITY_KEY, record);
+  return record;
+}
+
+/**
+ * Device list stays demo-only: revoking writes a tombstone list rather than
+ * pretending the backend signed other sessions out.
+ */
+export function demoSecuritySettings(): SecuritySettings {
+  enterDemoMode();
+  const record = demoSecurityRecord();
+  const now = Date.now();
+  const devices: LoginDevice[] = DEMO_DEVICES.filter((d) => !record.revokedDeviceIds.includes(d.id)).map(
+    (device, index) => ({
+      ...device,
+      lastActiveAt: device.current ? now : now - (index + 1) * 3 * 60 * 60 * 1000
+    })
+  );
+  return {
+    twoFactorEnabled: record.twoFactorEnabled,
+    // No backend TOTP secret yet, so no QR payload: the UI shows a placeholder.
+    twoFactorQr: undefined,
+    lastPasswordChangedAt: record.lastPasswordChangedAt,
+    devices
+  };
+}
+
+/** Enabling two-factor requires a six digit code; the demo accepts any valid one. */
+export function demoUpdateSecuritySettings(request: SecurityUpdateRequest): SecuritySettings {
+  enterDemoMode();
+  const record = demoSecurityRecord();
+  if (request.twoFactorEnabled && !/^[0-9]{6}$/.test((request.twoFactorCode ?? '').trim())) {
+    throw new ApiError('INVALID_TFA_CODE', 'a six digit verification code is required');
+  }
+  return demoSecuritySettingsFrom(saveSecurityRecord({ ...record, twoFactorEnabled: request.twoFactorEnabled }));
+}
+
+function demoSecuritySettingsFrom(record: DemoSecurityRecord): SecuritySettings {
+  writeJson(SETTINGS_SECURITY_KEY, record);
+  return demoSecuritySettings();
+}
+
+export function demoMarkPasswordChanged(): SecuritySettings {
+  enterDemoMode();
+  return demoSecuritySettingsFrom(
+    saveSecurityRecord({ ...demoSecurityRecord(), lastPasswordChangedAt: Date.now() })
+  );
+}
+
+export function demoRevokeLoginDevice(deviceId: string): LoginDevice[] {
+  enterDemoMode();
+  const record = demoSecurityRecord();
+  if (record.revokedDeviceIds.includes(deviceId)) return demoSecuritySettings().devices;
+  return demoSecuritySettingsFrom({
+    ...record,
+    revokedDeviceIds: [...record.revokedDeviceIds, deviceId]
+  }).devices;
+}
+
+/** Bound channel rows reuse the Sprint 5b registry so both surfaces agree. */
+export function demoSettingsChannels(): ChannelAccount[] {
+  return demoChannels();
+}
+
+function looksLikeAccountName(key: string): boolean {
+  return !/secret|token|password|key$/i.test(key);
+}
+
+function accountNameFrom(
+  platform: ChannelPlatform,
+  credentials: Record<string, string>
+): string {
+  for (const [key, value] of Object.entries(credentials)) {
+    const clean = (value ?? '').trim();
+    if (clean && clean.length <= 40 && looksLikeAccountName(key)) return clean;
+  }
+  return DEMO_ACCOUNT_NAMES[platform];
+}
+
+/** Manual credential binding writes straight into the shared channel registry. */
+export function demoBindChannel(
+  platform: ChannelPlatform,
+  credentials: Record<string, string>
+): ChannelAccount {
+  enterDemoMode();
+  const record: DemoChannelRecord = {
+    id: 'demo-' + platform,
+    platform,
+    accountName: accountNameFrom(platform, credentials),
+    status: 'connected',
+    connectedAt: Date.now(),
+    tokenExpiresAt: Date.now() + CHANNEL_PERIOD_MS
+  };
+  writeChannelRecords([...readChannelRecords().filter((r) => r.id !== record.id), record]);
+  return toChannel(record);
+}
+
+export function demoUnbindChannel(channelId: string): void {
+  demoDisconnect(channelId);
+}
+
+function hashCode(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  return hash;
+}
+
+/** Deterministic probe so the latency figure is stable across renders and tests. */
+export function demoSettingsTestChannel(channelId: string): ChannelTestResult {
+  enterDemoMode();
+  const channel = demoChannelById(channelId);
+  if (!channel) throw new ApiError('NOT_FOUND', 'channel not found');
+  const latencyMs = 120 + (hashCode(channelId) % 180);
+  const ok = channel.status === 'connected';
+  return {
+    channelId,
+    ok,
+    latencyMs,
+    checkedAt: Date.now(),
+    message: ok ? undefined : 'channel needs re-authorization'
+  };
 }

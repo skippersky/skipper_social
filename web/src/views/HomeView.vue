@@ -80,6 +80,11 @@ const i18n = useI18nStore();
         <span class="feature__title">{{ i18n.t('home.entryChannelsTitle') }}</span>
         <span class="feature__desc">{{ i18n.t('home.entryChannelsDesc') }}</span>
       </router-link>
+      <router-link class="feature" to="/dashboard/settings">
+        <span class="feature__icon feature__icon--gear" aria-hidden="true"></span>
+        <span class="feature__title">{{ i18n.t('home.entrySettingsTitle') }}</span>
+        <span class="feature__desc">{{ i18n.t('home.entrySettingsDesc') }}</span>
+      </router-link>
     </section>
 
     <p class="home__notice">{{ i18n.t('home.notice') }}</p>
@@ -325,6 +330,12 @@ const i18n = useI18nStore();
   background: var(--ks-success);
   border-radius: 50%;
   box-shadow: 9px -9px 0 -4px var(--ks-accent), -9px 9px 0 -4px var(--ks-primary);
+}
+.feature__icon--gear::after {
+  inset: 11px;
+  background: var(--ks-primary);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 4px var(--ks-bg-surface);
 }
 .feature__title {
   font-family: Sora, "PingFang SC", sans-serif;

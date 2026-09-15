@@ -27,6 +27,11 @@ import NotificationPreferencesView from '../views/dashboard/notifications/prefer
 import CustomerDetailView from '../views/dashboard/customers/detail.vue';
 import ChannelsView from '../views/dashboard/channels/index.vue';
 import ChannelConnectView from '../views/dashboard/channels/connect.vue';
+import SettingsHubView from '../views/dashboard/settings/index.vue';
+import SettingsProfileTab from '../views/dashboard/settings/ProfileTab.vue';
+import SettingsSecurityTab from '../views/dashboard/settings/SecurityTab.vue';
+import SettingsPreferencesTab from '../views/dashboard/settings/PreferencesTab.vue';
+import SettingsChannelsTab from '../views/dashboard/settings/ChannelsTab.vue';
 import AuthCallbackView from '../views/auth/callback.vue';
 import { useAuthStore } from '../stores/auth';
 
@@ -84,6 +89,16 @@ export const router = createRouter({
     { path: '/dashboard/notifications/preferences', name: 'notification-preferences', component: NotificationPreferencesView },
     { path: '/dashboard/channels', name: 'channels', component: ChannelsView },
     { path: '/dashboard/channels/connect/:platform', name: 'channel-connect', component: ChannelConnectView },
+    {
+      path: '/dashboard/settings',
+      component: SettingsHubView,
+      children: [
+        { path: '', name: 'settings-hub', component: SettingsProfileTab },
+        { path: 'security', name: 'settings-hub-security', component: SettingsSecurityTab },
+        { path: 'preferences', name: 'settings-hub-preferences', component: SettingsPreferencesTab },
+        { path: 'channels', name: 'settings-hub-channels', component: SettingsChannelsTab }
+      ]
+    },
     { path: '/auth/callback/:platform', name: 'auth-callback', component: AuthCallbackView }
   ]
 });

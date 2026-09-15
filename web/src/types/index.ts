@@ -403,3 +403,96 @@ export type NotificationConnectionStatus =
   | 'connected'
   | 'disconnected'
   | 'error';
+
+/* Sprint 10: settings and account */
+
+/** Theme selection. Dark is offered but disabled until a dark palette exists. */
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+/** Resolved theme actually painted on the document. */
+export type ResolvedTheme = 'light' | 'dark';
+
+/** Editable identity block shown on the settings profile tab. */
+export interface SettingsProfile {
+  name: string;
+  email: string;
+  phone: string;
+  bio: string;
+  avatarUrl: string;
+  company: string;
+  timezone: string;
+  language: string;
+}
+
+/** Subset of the profile the user is allowed to change. */
+export interface ProfileUpdateRequest {
+  name?: string;
+  phone?: string;
+  bio?: string;
+  avatarUrl?: string;
+  company?: string;
+  timezone?: string;
+  language?: string;
+}
+
+export interface PasswordChangeRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/** A session that can be signed out remotely from the security tab. */
+export interface LoginDevice {
+  id: string;
+  name: string;
+  location: string;
+  /** Epoch milliseconds of the last seen request. */
+  lastActiveAt: number;
+  /** True for the session issuing the request. */
+  current: boolean;
+}
+
+export interface SecuritySettings {
+  twoFactorEnabled: boolean;
+  /** Opaque secret/otpauth payload rendered as a QR placeholder while demo-only. */
+  twoFactorQr?: string;
+  lastPasswordChangedAt?: number;
+  devices: LoginDevice[];
+}
+
+export interface SecurityUpdateRequest {
+  twoFactorEnabled: boolean;
+  /** Six digit code required when turning two-factor authentication on. */
+  twoFactorCode?: string;
+}
+
+export interface SystemPreferences {
+  language: string;
+  timezone: string;
+  theme: ThemeMode;
+  soundEnabled: boolean;
+  desktopNotifications: boolean;
+}
+
+/**
+ * Settings channel rows are Sprint 5b channels: one registry, two surfaces, so
+ * /dashboard/channels and the settings tab can never disagree.
+ */
+export type ChannelAccount = Channel;
+
+export interface ChannelTestResult {
+  channelId: string;
+  ok: boolean;
+  /** Round trip time of the probe in milliseconds. */
+  latencyMs: number;
+  checkedAt: number;
+  /** Failure detail when ok is false. */
+  message?: string;
+}
+
+export interface BindChannelRequest {
+  platform: ChannelPlatform;
+  credentials: Record<string, string>;
+}
+
+export type SettingsTab = 'profile' | 'security' | 'preferences' | 'channels';

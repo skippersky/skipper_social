@@ -49,6 +49,7 @@ async function onLogout(): Promise<void> {
         </p>
         <button role="menuitem" type="button" @click="go('/settings/profile')">{{ i18n.t('nav.profile') }}</button>
         <button role="menuitem" type="button" @click="go('/settings/security')">{{ i18n.t('nav.security') }}</button>
+        <button role="menuitem" type="button" @click="go('/dashboard/settings')">{{ i18n.t('nav.settings') }}</button>
         <button role="menuitem" type="button" class="user-menu__logout" @click="onLogout">{{ i18n.t('auth.logout') }}</button>
       </div>
     </template>

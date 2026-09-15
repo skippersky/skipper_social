@@ -7,8 +7,12 @@ import App from './App.vue';
 import { onUnauthorized } from './api/http';
 import { router } from './router';
 import { useAuthStore } from './stores/auth';
+import { initTheme } from './lib/theme';
 
 const pinia = createPinia();
+
+// Paint the stored theme before first render so there is no flash.
+initTheme();
 
 // 401 after a failed session refresh: drop local state and return to sign-in.
 onUnauthorized(() => {
