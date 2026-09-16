@@ -496,3 +496,263 @@ export interface BindChannelRequest {
 }
 
 export type SettingsTab = 'profile' | 'security' | 'preferences' | 'channels';
+
+/* Sprint 11: AI marketing */
+
+/** Marketing intent the AI copy is written for. */
+export type MarketingGoal = 'promotion' | 'new_arrival' | 'festival' | 'winback' | 'custom';
+export type ContentLanguage = 'en' | 'fr' | 'sw';
+export type ContentTone = 'professional' | 'friendly' | 'playful' | 'urgent';
+export type ContentLength = 'short' | 'standard' | 'detailed';
+export type TemplateCategory = MarketingGoal;
+export type CampaignStatus = 'draft' | 'running' | 'paused' | 'completed' | 'cancelled';
+export type SendMode = 'immediate' | 'scheduled';
+export type SendStatus = 'pending' | 'sent' | 'failed';
+/** Why a selected recipient cannot receive the campaign. */
+export type RecipientInvalidReason = 'no_channel_account' | 'missing_handle' | 'opted_out';
+
+export const MARKETING_GOALS: MarketingGoal[] = [
+  'promotion',
+  'new_arrival',
+  'festival',
+  'winback',
+  'custom'
+];
+
+export const CONTENT_LANGUAGES: ContentLanguage[] = ['en', 'fr', 'sw'];
+export const CONTENT_TONES: ContentTone[] = ['professional', 'friendly', 'playful', 'urgent'];
+export const CONTENT_LENGTHS: ContentLength[] = ['short', 'standard', 'detailed'];
+export const CAMPAIGN_STATUSES: CampaignStatus[] = [
+  'draft',
+  'running',
+  'paused',
+  'completed',
+  'cancelled'
+];
+
+/** Channel body limits used by the preview pane; WhatsApp has no hard cap. */
+export const CHANNEL_BODY_LIMIT: Record<ChannelPlatform, number> = {
+  whatsapp: 4096,
+  facebook: 8000,
+  instagram: 2200,
+  tiktok: 2200
+};
+
+/** One generated marketing message, editable before it is sent. */
+export interface MarketingContent {
+  id: string;
+  title: string;
+  body: string;
+  cta: string;
+  /** Visual brief for the suggested image, never rendered as a claim. */
+  imageSuggestion: string;
+  hashtags: string[];
+  goal: MarketingGoal;
+  language: ContentLanguage;
+  tone: ContentTone;
+  length: ContentLength;
+  createdAt: number;
+}
+
+export interface AIContentRequest {
+  prompt: string;
+  goal: MarketingGoal;
+  audience: string;
+  language: ContentLanguage;
+  tone: ContentTone;
+  length: ContentLength;
+  /** Refinement hint such as "more playful" or "add the discount". */
+  feedback?: string;
+  /** Set when regenerating or refining an earlier draft. */
+  sourceId?: string;
+}
+
+export interface MarketingTemplate {
+  id: string;
+  name: string;
+  category: TemplateCategory;
+  title: string;
+  content: string;
+  cta: string;
+  usageCount: number;
+  createdAt: number;
+  updatedAt: number;
+  demo?: boolean;
+}
+
+export interface TemplateInput {
+  name: string;
+  category: TemplateCategory;
+  title: string;
+  content: string;
+  cta: string;
+}
+
+/** Activity buckets used by the recipient selector. */
+export type RecipientActivity = 'all' | 'active' | 'inactive';
+
+export interface RecipientFilters {
+  tagIds: string[];
+  channels: ChannelPlatform[];
+  activity: RecipientActivity;
+  query: string;
+}
+
+export interface Recipient {
+  id: string;
+  name: string;
+  channel: ChannelPlatform;
+  /** Phone or handle the message is delivered to. */
+  handle: string;
+  tags: string[];
+  valid: boolean;
+  invalidReason?: RecipientInvalidReason;
+}
+
+export const DEFAULT_SEND_SETTINGS: SendSettings = {
+  mode: 'immediate',
+  scheduledAt: null,
+  perMinute: 10,
+  intervalMs: 2000,
+  channels: ['whatsapp']
+};
+
+export interface SendSettings {
+  mode: SendMode;
+  /** Epoch ms; null for immediate delivery. */
+  scheduledAt: number | null;
+  perMinute: number;
+  intervalMs: number;
+  channels: ChannelPlatform[];
+}
+
+/** Hard product limits so a user setting can never trip a channel ban. */
+export const RATE_LIMITS = {
+  maxPerMinute: 60,
+  minPerMinute: 1,
+  minIntervalMs: 1000,
+  maxIntervalMs: 60000
+} as const;
+
+export interface CampaignProgress {
+  total: number;
+  sent: number;
+  failed: number;
+  pending: number;
+  /** 0..100 integer. */
+  percent: number;
+  /** Measured delivery speed, messages per minute. */
+  ratePerMinute: number;
+}
+
+export interface CampaignStats {
+  delivered: number;
+  opened: number;
+  clicked: number;
+  replied: number;
+  converted: number;
+  openRate: number;
+  clickRate: number;
+  replyRate: number;
+  conversionRate: number;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  status: CampaignStatus;
+  content: MarketingContent;
+  templateId?: string;
+  recipientCount: number;
+  channels: ChannelPlatform[];
+  settings: SendSettings;
+  progress: CampaignProgress;
+  stats: CampaignStats;
+  createdAt: number;
+  startedAt: number | null;
+  finishedAt: number | null;
+  demo?: boolean;
+}
+
+export interface CampaignInput {
+  name: string;
+  content: MarketingContent;
+  templateId?: string;
+  recipientIds: string[];
+  filters: RecipientFilters;
+  settings: SendSettings;
+}
+
+export interface SendRecord {
+  id: string;
+  campaignId: string;
+  campaignName: string;
+  recipientId: string;
+  recipientName: string;
+  channel: ChannelPlatform;
+  status: SendStatus;
+  failureReason?: string;
+  sentAt: number | null;
+  opened: boolean;
+  clicked: boolean;
+  replied: boolean;
+}
+
+export interface PagedSendHistory {
+  records: SendRecord[];
+  hasMore: boolean;
+  total: number;
+}
+
+export interface MarketingOverview {
+  monthSent: number;
+  monthOpenRate: number;
+  monthConversionRate: number;
+  activeCampaigns: number;
+}
+
+/** Per-platform rendering of one message, used by the preview pane. */
+export interface ContentPreview {
+  platform: ChannelPlatform;
+  title: string;
+  body: string;
+  cta: string;
+  charCount: number;
+  limit: number;
+  truncated: boolean;
+}
+
+export interface CampaignListParams {
+  query?: string;
+  status?: CampaignStatus | 'all';
+  limit?: number;
+  offset?: number;
+}
+
+export interface PagedCampaigns {
+  campaigns: Campaign[];
+  hasMore: boolean;
+  total: number;
+}
+
+export interface SendHistoryParams {
+  from?: number;
+  to?: number;
+  campaignId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/** Live view of the throttled delivery loop, driven by lib/sendQueue. */
+export interface BatchSendProgress {
+  total: number;
+  done: number;
+  failed: number;
+  running: boolean;
+  percent: number;
+  /** Milliseconds until the queue drains at the current rate. */
+  etaMs: number;
+  currentName: string;
+  /** Measured delivery speed while the loop runs, messages per minute. */
+  ratePerMinute: number;
+}

@@ -80,6 +80,11 @@ const i18n = useI18nStore();
         <span class="feature__title">{{ i18n.t('home.entryChannelsTitle') }}</span>
         <span class="feature__desc">{{ i18n.t('home.entryChannelsDesc') }}</span>
       </router-link>
+      <router-link class="feature" to="/dashboard/marketing">
+        <span class="feature__icon feature__icon--marketing" aria-hidden="true"></span>
+        <span class="feature__title">{{ i18n.t('marketing.homeEntryTitle') }}</span>
+        <span class="feature__desc">{{ i18n.t('marketing.homeEntryDesc') }}</span>
+      </router-link>
       <router-link class="feature" to="/dashboard/settings">
         <span class="feature__icon feature__icon--gear" aria-hidden="true"></span>
         <span class="feature__title">{{ i18n.t('home.entrySettingsTitle') }}</span>
@@ -330,6 +335,12 @@ const i18n = useI18nStore();
   background: var(--ks-success);
   border-radius: 50%;
   box-shadow: 9px -9px 0 -4px var(--ks-accent), -9px 9px 0 -4px var(--ks-primary);
+}
+.feature__icon--marketing::after {
+  inset: 12px;
+  background: var(--ks-grad-brand);
+  clip-path: polygon(0 34%, 62% 34%, 62% 0, 100% 50%, 62% 100%, 62% 66%, 0 66%);
+  border-radius: 0;
 }
 .feature__icon--gear::after {
   inset: 11px;

@@ -1,9 +1,12 @@
+import { marketingMessages } from './marketing';
+
 export type UiLocale = 'en' | 'zh' | 'fr';
 
 export const UI_LOCALES: UiLocale[] = ['en', 'zh', 'fr'];
 
 export const messages: Record<UiLocale, Record<string, string>> = {
   en: {
+    ...marketingMessages.en,
     'nav.notifications': 'Notifications',
     'notifications.metaTitle': 'Notifications',
     'notifications.metaDescription': 'Filter, read and clear KiliSocial notifications across messages, conversations, customers and system alerts.',
@@ -116,6 +119,8 @@ export const messages: Record<UiLocale, Record<string, string>> = {
     'common.retry': 'Retry',
     'common.backHome': 'Back to home',
     'common.required': 'This field is required',
+    'common.search': 'Search',
+    'common.clear': 'Clear',
     'chat.empty': 'No conversations yet',
     'chat.demoNotice': 'Sample data shown below. Real conversations will appear once you connect a channel.',
     'chat.demoHide': 'Hide sample data',
@@ -316,6 +321,7 @@ export const messages: Record<UiLocale, Record<string, string>> = {
     'common.loading': 'Loading…',
     'common.close': 'Close',
     'common.cancel': 'Cancel',
+    'common.save': 'Save',
     'nav.settings': 'Settings',
     'home.entrySettingsTitle': 'Settings & account',
     'home.entrySettingsDesc': 'Profile, security, preferences and connected channels.',
@@ -639,6 +645,7 @@ export const messages: Record<UiLocale, Record<string, string>> = {
 'channels.refreshDone': 'Tokens refreshed'
   },
   zh: {
+    ...marketingMessages.zh,
     'nav.notifications': '通知',
     'notifications.metaTitle': '通知中心',
     'notifications.metaDescription': '按类型和已读状态筛选消息、会话、客户与系统通知，支持一键全部已读和清理。',
@@ -751,6 +758,8 @@ export const messages: Record<UiLocale, Record<string, string>> = {
     'common.retry': '重试',
     'common.backHome': '返回首页',
     'common.required': '此项为必填',
+    'common.search': '搜索',
+    'common.clear': '清空',
     'chat.empty': '暂无对话',
     'chat.demoNotice': '以下为示例数据，连接真实渠道后将显示实际会话。',
     'chat.demoHide': '隐藏示例数据',
@@ -951,6 +960,7 @@ export const messages: Record<UiLocale, Record<string, string>> = {
     'common.loading': '加载中…',
     'common.close': '关闭',
     'common.cancel': '取消',
+    'common.save': '保存',
     'nav.settings': '设置',
     'home.entrySettingsTitle': '设置与账号',
     'home.entrySettingsDesc': '资料、安全、偏好与已连接渠道。',
@@ -1274,6 +1284,7 @@ export const messages: Record<UiLocale, Record<string, string>> = {
 'channels.refreshDone': 'Token 已刷新'
   },
   fr: {
+    ...marketingMessages.fr,
     'nav.notifications': 'Notifications',
     'notifications.metaTitle': 'Notifications',
     'notifications.metaDescription': 'Filtrez, lisez et nettoyez les notifications KiliSocial : messages, conversations, clients et alertes système.',
@@ -1386,6 +1397,8 @@ export const messages: Record<UiLocale, Record<string, string>> = {
     'common.retry': 'Réessayer',
     'common.backHome': 'Retour à l’accueil',
     'common.required': 'Champ requis',
+    'common.search': 'Rechercher',
+    'common.clear': 'Effacer',
     'chat.empty': 'Aucune conversation',
     'chat.demoNotice': 'Données d’exemple ci-dessous. Les conversations réelles apparaîtront une fois un canal connecté.',
     'chat.demoHide': 'Masquer les données d’exemple',
@@ -1586,6 +1599,7 @@ export const messages: Record<UiLocale, Record<string, string>> = {
     'common.loading': 'Chargement…',
     'common.close': 'Fermer',
     'common.cancel': 'Annuler',
+    'common.save': 'Enregistrer',
     'nav.settings': 'Paramètres',
     'home.entrySettingsTitle': 'Paramètres et compte',
     'home.entrySettingsDesc': 'Profil, sécurité, préférences et canaux connectés.',

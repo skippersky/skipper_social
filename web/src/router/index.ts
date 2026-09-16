@@ -27,6 +27,11 @@ import NotificationPreferencesView from '../views/dashboard/notifications/prefer
 import CustomerDetailView from '../views/dashboard/customers/detail.vue';
 import ChannelsView from '../views/dashboard/channels/index.vue';
 import ChannelConnectView from '../views/dashboard/channels/connect.vue';
+import MarketingView from '../views/dashboard/marketing/index.vue';
+import CreateCampaignView from '../views/dashboard/marketing/CreateCampaign.vue';
+import CampaignDetailView from '../views/dashboard/marketing/CampaignDetail.vue';
+import MarketingTemplatesView from '../views/dashboard/marketing/Templates.vue';
+import MarketingHistoryView from '../views/dashboard/marketing/History.vue';
 import SettingsHubView from '../views/dashboard/settings/index.vue';
 import SettingsProfileTab from '../views/dashboard/settings/ProfileTab.vue';
 import SettingsSecurityTab from '../views/dashboard/settings/SecurityTab.vue';
@@ -89,6 +94,11 @@ export const router = createRouter({
     { path: '/dashboard/notifications/preferences', name: 'notification-preferences', component: NotificationPreferencesView },
     { path: '/dashboard/channels', name: 'channels', component: ChannelsView },
     { path: '/dashboard/channels/connect/:platform', name: 'channel-connect', component: ChannelConnectView },
+    { path: '/dashboard/marketing', name: 'marketing', component: MarketingView },
+    { path: '/dashboard/marketing/create', name: 'marketing-create', component: CreateCampaignView },
+    { path: '/dashboard/marketing/campaigns/:id', name: 'marketing-detail', component: CampaignDetailView },
+    { path: '/dashboard/marketing/templates', name: 'marketing-templates', component: MarketingTemplatesView },
+    { path: '/dashboard/marketing/history', name: 'marketing-history', component: MarketingHistoryView },
     {
       path: '/dashboard/settings',
       component: SettingsHubView,
