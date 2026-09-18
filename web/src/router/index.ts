@@ -32,6 +32,12 @@ import CreateCampaignView from '../views/dashboard/marketing/CreateCampaign.vue'
 import CampaignDetailView from '../views/dashboard/marketing/CampaignDetail.vue';
 import MarketingTemplatesView from '../views/dashboard/marketing/Templates.vue';
 import MarketingHistoryView from '../views/dashboard/marketing/History.vue';
+import WorkflowListView from '../views/dashboard/workflows/index.vue';
+import WorkflowBuilderView from '../views/dashboard/workflows/Builder.vue';
+import WorkflowRunsView from '../views/dashboard/workflows/Runs.vue';
+import WorkflowRunDetailView from '../views/dashboard/workflows/RunDetail.vue';
+import WorkflowTemplatesView from '../views/dashboard/workflows/Templates.vue';
+import WorkflowDetailView from '../views/dashboard/workflows/Detail.vue';
 import SettingsHubView from '../views/dashboard/settings/index.vue';
 import SettingsProfileTab from '../views/dashboard/settings/ProfileTab.vue';
 import SettingsSecurityTab from '../views/dashboard/settings/SecurityTab.vue';
@@ -99,6 +105,13 @@ export const router = createRouter({
     { path: '/dashboard/marketing/campaigns/:id', name: 'marketing-detail', component: CampaignDetailView },
     { path: '/dashboard/marketing/templates', name: 'marketing-templates', component: MarketingTemplatesView },
     { path: '/dashboard/marketing/history', name: 'marketing-history', component: MarketingHistoryView },
+    /* Static workflow segments are declared before ':id' so they are never swallowed. */
+    { path: '/dashboard/workflows', name: 'workflows', component: WorkflowListView },
+    { path: '/dashboard/workflows/builder', name: 'workflow-builder', component: WorkflowBuilderView },
+    { path: '/dashboard/workflows/runs', name: 'workflow-runs', component: WorkflowRunsView },
+    { path: '/dashboard/workflows/runs/:runId', name: 'workflow-run-detail', component: WorkflowRunDetailView },
+    { path: '/dashboard/workflows/templates', name: 'workflow-templates', component: WorkflowTemplatesView },
+    { path: '/dashboard/workflows/:id', name: 'workflow-detail', component: WorkflowDetailView },
     {
       path: '/dashboard/settings',
       component: SettingsHubView,

@@ -16,7 +16,10 @@ async function mountHome() {
       { path: '/dashboard/customers', component: { template: '<div />' } },
       { path: '/dashboard/channels', component: { template: '<div />' } },
       { path: '/dashboard/analytics', component: { template: '<div />' } },
-      { path: '/dashboard/notifications', component: { template: '<div />' } }
+      { path: '/dashboard/notifications', component: { template: '<div />' } },
+    { path: '/dashboard/workflows', component: { template: '<div />' } },
+    { path: '/dashboard/marketing', component: { template: '<div />' } },
+    { path: '/dashboard/settings', component: { template: '<div />' } }
     ]
   });
   await router.push('/');
@@ -50,5 +53,8 @@ describe('HomeView', () => {
     expect(hrefs).toContain('/dashboard/channels');
     expect(hrefs).toContain('/dashboard/analytics');
     expect(hrefs).toContain('/dashboard/notifications');
+    expect(hrefs).toContain('/dashboard/workflows');
+    expect(hrefs).toContain('/dashboard/marketing');
+    expect(hrefs).toContain('/dashboard/settings');
   });
 });

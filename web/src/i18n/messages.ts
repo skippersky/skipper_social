@@ -1,4 +1,5 @@
 import { marketingMessages } from './marketing';
+import { workflowMessages } from './workflow';
 
 export type UiLocale = 'en' | 'zh' | 'fr';
 
@@ -7,6 +8,7 @@ export const UI_LOCALES: UiLocale[] = ['en', 'zh', 'fr'];
 export const messages: Record<UiLocale, Record<string, string>> = {
   en: {
     ...marketingMessages.en,
+    ...workflowMessages.en,
     'nav.notifications': 'Notifications',
     'notifications.metaTitle': 'Notifications',
     'notifications.metaDescription': 'Filter, read and clear KiliSocial notifications across messages, conversations, customers and system alerts.',
@@ -646,6 +648,7 @@ export const messages: Record<UiLocale, Record<string, string>> = {
   },
   zh: {
     ...marketingMessages.zh,
+    ...workflowMessages.zh,
     'nav.notifications': '通知',
     'notifications.metaTitle': '通知中心',
     'notifications.metaDescription': '按类型和已读状态筛选消息、会话、客户与系统通知，支持一键全部已读和清理。',
@@ -1285,6 +1288,7 @@ export const messages: Record<UiLocale, Record<string, string>> = {
   },
   fr: {
     ...marketingMessages.fr,
+    ...workflowMessages.fr,
     'nav.notifications': 'Notifications',
     'notifications.metaTitle': 'Notifications',
     'notifications.metaDescription': 'Filtrez, lisez et nettoyez les notifications KiliSocial : messages, conversations, clients et alertes système.',

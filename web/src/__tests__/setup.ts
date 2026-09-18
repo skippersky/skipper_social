@@ -9,6 +9,43 @@ import { afterEach } from 'vitest';
  * every run stays deterministic, and in-flight promise chains are drained while
  * the document is still alive.
  */
+/**
+ * The workflow canvas measures itself. Vue Flow asks for ResizeObserver and the
+ * builder asks for matchMedia; jsdom ships neither, so a view that only wants
+ * the list renderer would still throw during mount. Both are installed here,
+ * guarded so a future jsdom that provides them keeps its own implementation.
+ */
+type ObserverCallback = (entries: unknown[], observer: unknown) => void;
+
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  class ResizeObserverStub {
+    constructor(callback: ObserverCallback) {
+      void callback;
+    }
+
+    observe(): void {}
+
+    unobserve(): void {}
+
+    disconnect(): void {}
+  }
+  (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = ResizeObserverStub;
+}
+
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  const matchMediaStub = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false
+  });
+  (window as unknown as { matchMedia: unknown }).matchMedia = matchMediaStub;
+}
+
 type TimerCallback = (...args: unknown[]) => void;
 type TimerId = ReturnType<typeof setTimeout>;
 

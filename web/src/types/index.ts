@@ -756,3 +756,6 @@ export interface BatchSendProgress {
   /** Measured delivery speed while the loop runs, messages per minute. */
   ratePerMinute: number;
 }
+
+/** Sprint 12 automation workflow domain types. */
+export * from './workflow';
