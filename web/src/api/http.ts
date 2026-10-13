@@ -28,6 +28,47 @@ export function onUnauthorized(handler: (() => void) | null): void {
   unauthorizedHandler = handler;
 }
 
+/* ------------------------------------------------------- tenant context */
+
+/** Header carrying the active organisation id (Sprint 13 data isolation). */
+export const ORG_HEADER = 'X-Organization-Id';
+
+let requestContext: Record<string, string> = {};
+
+/**
+ * Sets headers merged into every request made through this module.
+ *
+ * Additive on purpose: with no context set the outgoing init is byte-identical
+ * to before, so the 22 api modules accepted in Sprints 3-12 are unaffected. The
+ * organisation store calls this on bootstrap and on every tenant switch; the
+ * http layer never imports a store, which would be a cycle.
+ */
+export function setRequestContext(headers: Record<string, string> | null): void {
+  requestContext = headers ? { ...headers } : {};
+}
+
+export function getRequestContext(): Record<string, string> {
+  return { ...requestContext };
+}
+
+/** Binds the active organisation id; null clears it (no org selected yet). */
+export function setOrganizationHeader(orgId: string | null): void {
+  if (orgId) setRequestContext({ ...requestContext, [ORG_HEADER]: orgId });
+  else {
+    const next = { ...requestContext };
+    delete next[ORG_HEADER];
+    setRequestContext(next);
+  }
+}
+
+function mergeHeaders(init?: RequestInit): HeadersInit | undefined {
+  const base = init?.headers as Record<string, string> | undefined;
+  const hasContext = Object.keys(requestContext).length > 0;
+  if (!hasContext && !base) return undefined;
+  /* Caller headers win, so a module can still override the tenant header. */
+  return { ...requestContext, ...(base ?? {}) };
+}
+
 /** Maps an ApiError/HTTP status to an i18n key for user-friendly display. */
 export function apiErrorI18nKey(error: unknown): string {
   if (error instanceof ApiError) {
@@ -44,7 +85,12 @@ async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Respon
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    return await fetch(url, { credentials: 'include', ...init, signal: controller.signal });
+    return await fetch(url, {
+      credentials: 'include',
+      ...init,
+      headers: mergeHeaders(init),
+      signal: controller.signal
+    });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new ApiError('TIMEOUT', 'request timed out');

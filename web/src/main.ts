@@ -8,6 +8,7 @@ import { onUnauthorized } from './api/http';
 import { router } from './router';
 import { useAuthStore } from './stores/auth';
 import { initTheme } from './lib/theme';
+import { registerPermissionDirective } from './directives/permission';
 
 const pinia = createPinia();
 
@@ -23,6 +24,10 @@ onUnauthorized(() => {
   }
 });
 
-createApp(App).use(pinia).use(router).use(Vant).mount('#app');
+const app = createApp(App);
+app.use(pinia).use(router).use(Vant);
+/* v-permission reads the organisation store, so pinia goes in first. */
+registerPermissionDirective(app);
+app.mount('#app');
 
 void useAuthStore(pinia).bootstrap();

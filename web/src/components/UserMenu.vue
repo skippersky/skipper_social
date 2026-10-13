@@ -50,6 +50,8 @@ async function onLogout(): Promise<void> {
         <button role="menuitem" type="button" @click="go('/settings/profile')">{{ i18n.t('nav.profile') }}</button>
         <button role="menuitem" type="button" @click="go('/settings/security')">{{ i18n.t('nav.security') }}</button>
         <button role="menuitem" type="button" @click="go('/dashboard/settings')">{{ i18n.t('nav.settings') }}</button>
+        <button role="menuitem" type="button" data-testid="usermenu-organization" @click="go('/dashboard/organization')">{{ i18n.t('org.title') }}</button>
+        <button role="menuitem" type="button" data-testid="usermenu-switch-org" @click="go('/dashboard/organization/switch')">{{ i18n.t('org.switch.title') }}</button>
         <button role="menuitem" type="button" class="user-menu__logout" @click="onLogout">{{ i18n.t('auth.logout') }}</button>
       </div>
     </template>

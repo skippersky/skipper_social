@@ -44,7 +44,16 @@ import SettingsSecurityTab from '../views/dashboard/settings/SecurityTab.vue';
 import SettingsPreferencesTab from '../views/dashboard/settings/PreferencesTab.vue';
 import SettingsChannelsTab from '../views/dashboard/settings/ChannelsTab.vue';
 import AuthCallbackView from '../views/auth/callback.vue';
+import OrganizationOverviewView from '../views/dashboard/organization/index.vue';
+import OrganizationMembersView from '../views/dashboard/organization/members.vue';
+import OrganizationRolesView from '../views/dashboard/organization/roles.vue';
+import OrganizationSettingsView from '../views/dashboard/organization/settings.vue';
+import OrganizationSwitchView from '../views/dashboard/organization/switch.vue';
+import CreateOrgView from '../views/onboarding/CreateOrg.vue';
+import AcceptInvitationView from '../views/invitation/Accept.vue';
+import ForbiddenView from '../views/errors/Forbidden.vue';
 import { useAuthStore } from '../stores/auth';
+import { hasPublicPrefix, registerOrgGuards } from './guards';
 
 const PUBLIC_PATHS = new Set([
   '/',
@@ -122,14 +131,59 @@ export const router = createRouter({
         { path: 'channels', name: 'settings-hub-channels', component: SettingsChannelsTab }
       ]
     },
-    { path: '/auth/callback/:platform', name: 'auth-callback', component: AuthCallbackView }
+    { path: '/auth/callback/:platform', name: 'auth-callback', component: AuthCallbackView },
+    /* Sprint 13: all organisation routes are static, so no ':id' can swallow a sibling. */
+    {
+      path: '/dashboard/organization',
+      name: 'organization',
+      component: OrganizationOverviewView,
+      meta: { requiresOrg: true }
+    },
+    {
+      path: '/dashboard/organization/members',
+      name: 'organization-members',
+      component: OrganizationMembersView,
+      meta: { requiresOrg: true, permission: 'organization:view_members' }
+    },
+    {
+      path: '/dashboard/organization/roles',
+      name: 'organization-roles',
+      component: OrganizationRolesView,
+      meta: { requiresOrg: true, permission: 'organization:manage_roles' }
+    },
+    {
+      path: '/dashboard/organization/settings',
+      name: 'organization-settings',
+      component: OrganizationSettingsView,
+      meta: { requiresOrg: true, permission: 'organization:update_settings' }
+    },
+    {
+      path: '/dashboard/organization/switch',
+      name: 'organization-switch',
+      component: OrganizationSwitchView,
+      meta: { requiresOrg: true }
+    },
+    {
+      path: '/onboarding/create-org',
+      name: 'onboarding-create-org',
+      component: CreateOrgView,
+      meta: { requiresOrg: false }
+    },
+    /* Public: an invite link is usually opened by a signed-out recipient. */
+    {
+      path: '/invitation/:token',
+      name: 'invitation-accept',
+      component: AcceptInvitationView,
+      meta: { requiresOrg: false }
+    },
+    { path: '/403', name: 'forbidden', component: ForbiddenView, meta: { requiresOrg: false } }
   ]
 });
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore();
   await auth.bootstrap();
-  if (!PUBLIC_PATHS.has(to.path) && !auth.isAuthenticated) {
+  if (!PUBLIC_PATHS.has(to.path) && !hasPublicPrefix(to.path) && !auth.isAuthenticated) {
     return { path: '/login', query: { redirect: to.fullPath } };
   }
   if ((to.path === '/login' || to.path === '/register') && auth.isAuthenticated) {
@@ -137,3 +191,6 @@ router.beforeEach(async (to) => {
   }
   return true;
 });
+
+/* Sprint 13: tenant and permission checks, registered after the auth guard. */
+registerOrgGuards(router);

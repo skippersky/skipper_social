@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import LanguageSwitcher from './components/LanguageSwitcher.vue';
 import NotificationBell from './components/notification/NotificationBell.vue';
 import NotificationToast from './components/notification/NotificationToast.vue';
+import OrgSwitcher from './components/organization/OrgSwitcher.vue';
 import UserMenu from './components/UserMenu.vue';
 import { useI18nStore } from './i18n';
 import { useAuthStore } from './stores/auth';
@@ -39,6 +40,7 @@ const showChrome = computed(() => !LANDING_PATHS.includes(route.path));
           <span class="app-header__name">KiliSocial</span>
         </router-link>
         <div class="app-header__actions">
+          <OrgSwitcher v-if="auth.isAuthenticated" />
           <NotificationBell v-if="auth.isAuthenticated" />
           <LanguageSwitcher />
           <UserMenu />

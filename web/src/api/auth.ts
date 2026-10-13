@@ -107,6 +107,20 @@ function requireSessionUser(): DemoUser {
   if (!user) throw new ApiError('UNAUTHORIZED', 'not signed in');
   return user;
 }
+
+/**
+ * Non-throwing read of the on-device demo identity (Sprint 13).
+ *
+ * The organisation demo directory needs to know who is acting so it can seed
+ * that person as the owner of the default organisation. It must not throw, and
+ * it must not duplicate the storage keys above, hence this sibling of
+ * requireSessionUser rather than a second copy of the lookup.
+ */
+export function demoCurrentUser(): User | null {
+  const email = sessionEmail();
+  const user = email ? findUser(email) : undefined;
+  return user ? toPublic(user) : null;
+}
 export async function login(data: LoginRequest): Promise<AuthResponse> {
   try {
     return await apiPost<AuthResponse>(`${AUTH}/login`, data);

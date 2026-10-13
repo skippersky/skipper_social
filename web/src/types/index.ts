@@ -759,3 +759,6 @@ export interface BatchSendProgress {
 
 /** Sprint 12 automation workflow domain types. */
 export * from './workflow';
+
+/** Sprint 13 multi-tenancy and permission domain types. */
+export * from './organization';

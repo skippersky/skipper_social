@@ -5,6 +5,7 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import { DEMO_CREDENTIALS } from '../api/auth';
 import UserMenu from '../components/UserMenu.vue';
 import { useAuthStore } from '../stores/auth';
+import { useI18nStore } from '../i18n';
 
 async function mountMenu(authenticated: boolean) {
   const pinia = createPinia();
@@ -61,5 +62,18 @@ describe('UserMenu', () => {
 
     expect(auth.isAuthenticated).toBe(false);
     expect(router.currentRoute.value.path).toBe('/login');
+  });
+
+  it('labels the organisation entries with copy, not with a message key', async () => {
+    const { wrapper } = await mountMenu(true);
+    const i18n = useI18nStore();
+
+    await wrapper.find('.user-menu__trigger').trigger('click');
+
+    expect(wrapper.get('[data-testid="usermenu-organization"]').text()).toBe(i18n.t('org.title'));
+    expect(wrapper.get('[data-testid="usermenu-switch-org"]').text()).toBe(
+      i18n.t('org.switch.title')
+    );
+    expect(wrapper.text()).not.toContain('nav.organization');
   });
 });
